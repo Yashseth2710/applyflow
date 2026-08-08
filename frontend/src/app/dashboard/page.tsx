@@ -1,6 +1,7 @@
 "use client";
 
 import { RequireAuth } from "@/components/auth/require-auth";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 
@@ -37,16 +38,7 @@ function Dashboard() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
             <span className="text-primary">
-              <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden>
-                <rect width="26" height="26" rx="7" fill="currentColor" opacity="0.16" />
-                <path
-                  d="M7.5 16.5 11 13l3 3 5-6.5"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Logo />
             </span>
             <span className="font-semibold tracking-tight">ApplyFlow</span>
           </div>

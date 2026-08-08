@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { Logo } from "@/components/brand/logo";
+
 /**
  * Two-column shell for the login and register pages.
  *
@@ -35,7 +37,7 @@ export function AuthShell({
           href="/"
           className="relative z-10 inline-flex items-center gap-2.5 text-primary-foreground"
         >
-          <LogoMark />
+          <Logo />
           <span className="text-lg font-semibold tracking-tight">ApplyFlow</span>
         </Link>
 
@@ -78,7 +80,7 @@ export function AuthShell({
             className="mb-8 inline-flex items-center gap-2 text-foreground lg:hidden"
           >
             <span className="text-primary">
-              <LogoMark />
+              <Logo />
             </span>
             <span className="text-lg font-semibold tracking-tight">ApplyFlow</span>
           </Link>
@@ -94,28 +96,6 @@ export function AuthShell({
         </div>
       </main>
     </div>
-  );
-}
-
-function LogoMark() {
-  return (
-    <svg
-      width="26"
-      height="26"
-      viewBox="0 0 26 26"
-      fill="none"
-      aria-hidden
-      className="shrink-0"
-    >
-      <rect width="26" height="26" rx="7" fill="currentColor" opacity="0.18" />
-      <path
-        d="M7.5 16.5 11 13l3 3 5-6.5"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 
