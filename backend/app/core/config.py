@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     ENVIRONMENT: Literal["development", "staging", "production"] = "development"
     DEBUG: bool = False
+    # Separate from DEBUG: echoing every statement makes test output unreadable,
+    # and DEBUG is otherwise useful to leave on during development.
+    SQL_ECHO: bool = False
     API_V1_PREFIX: str = "/api/v1"
 
     # ---- Database ----

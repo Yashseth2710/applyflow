@@ -1,10 +1,16 @@
 /**
  * Typed fetch wrapper for the ApplyFlow API.
  *
- * `credentials: "include"` is set on every request because the refresh token
- * lives in an httpOnly cookie (see docs/architecture.md decision 2). Milestone 2
- * adds the access-token header and the silent-refresh-on-401 retry here.
+ * Handles two things beyond plain fetch:
+ *  - attaches the in-memory access token
+ *  - on a 401, silently refreshes once and replays the request, so a 15-minute
+ *    access token expiring mid-session is invisible to the user
+ *
+ * `credentials: "include"` is required throughout: the refresh token is an
+ * httpOnly cookie and the browser only sends it when asked to.
  */
+
+import { clearAccessToken, getAccessToken, setAccessToken } from "./auth-token";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
@@ -21,52 +27,117 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions extends RequestInit {
-  /** Aborts the request after this many ms. Render's free tier cold-starts,
-   *  so this is deliberately generous. */
+  /** Aborts after this many ms. Generous because Render's free tier
+   *  cold-starts and Neon wakes from suspend. */
   timeoutMs?: number;
+  /** Internal: prevents a refresh loop. */
+  _isRetry?: boolean;
+  /** Skip the token/refresh machinery (used by the auth endpoints). */
+  skipAuth?: boolean;
+}
+
+/** Shared across concurrent 401s so five parallel requests trigger one
+ *  refresh, not five. */
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        clearAccessToken();
+        return false;
+      }
+      const data = (await res.json()) as { access_token: string };
+      setAccessToken(data.access_token);
+      return true;
+    } catch {
+      clearAccessToken();
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 async function request<T>(
   path: string,
-  { timeoutMs = 30_000, ...init }: RequestOptions = {},
+  { timeoutMs = 30_000, _isRetry = false, skipAuth = false, ...init }: RequestOptions = {},
 ): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const token = skipAuth ? null : getAccessToken();
+
     const res = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       credentials: "include",
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init.headers,
       },
     });
 
-    const isJson = res.headers
-      .get("content-type")
-      ?.includes("application/json");
+    if (res.status === 401 && !_isRetry && !skipAuth) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        return request<T>(path, {
+          ...init,
+          timeoutMs,
+          skipAuth,
+          _isRetry: true,
+        });
+      }
+    }
+
+    if (res.status === 204) return undefined as T;
+
+    const isJson = res.headers.get("content-type")?.includes("application/json");
     const body = isJson ? await res.json() : await res.text();
 
     if (!res.ok) {
-      const detail =
-        typeof body === "object" && body !== null && "detail" in body
-          ? String((body as { detail: unknown }).detail)
-          : res.statusText;
-      throw new ApiError(res.status, detail, body);
+      throw new ApiError(res.status, extractDetail(body, res.statusText), body);
     }
 
     return body as T;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new ApiError(408, "Request timed out");
+      throw new ApiError(408, "Request timed out. Please try again.");
     }
     if (err instanceof ApiError) throw err;
-    throw new ApiError(0, "Cannot reach the API. Is the backend running?");
+    throw new ApiError(0, "Cannot reach the server. Is the backend running?");
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** FastAPI returns `detail` as a string, or as an array of objects for
+ *  validation errors. Both need to become one readable message. */
+function extractDetail(body: unknown, fallback: string): string {
+  if (typeof body !== "object" || body === null) return fallback;
+  const detail = (body as { detail?: unknown }).detail;
+
+  if (typeof detail === "string") return detail;
+
+  if (Array.isArray(detail)) {
+    const first = detail[0] as { msg?: string; loc?: unknown[] } | undefined;
+    if (first?.msg) {
+      const field = Array.isArray(first.loc) ? first.loc.at(-1) : undefined;
+      return field ? `${String(field)}: ${first.msg}` : first.msg;
+    }
+  }
+
+  return fallback;
 }
 
 export const api = {
@@ -91,4 +162,4 @@ export const api = {
     request<T>(path, { ...opts, method: "DELETE" }),
 };
 
-export { API_BASE_URL };
+export { API_BASE_URL, refreshAccessToken };

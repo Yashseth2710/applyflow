@@ -1,115 +1,130 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-import { api, API_BASE_URL } from "@/lib/api-client";
-import type { HealthResponse } from "@/lib/types";
+import { buttonVariants } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
+import { cn } from "@/lib/utils";
 
-function StatusDot({ state }: { state: "ok" | "bad" | "pending" }) {
-  const color =
-    state === "ok"
-      ? "bg-emerald-500"
-      : state === "bad"
-        ? "bg-red-500"
-        : "bg-amber-400 animate-pulse";
-  return <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />;
-}
-
-function Row({
-  label,
-  value,
-  state,
-}: {
-  label: string;
-  value: string;
-  state?: "ok" | "bad" | "pending";
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-black/5 py-2.5 last:border-0 dark:border-white/10">
-      <span className="text-sm text-neutral-500 dark:text-neutral-400">
-        {label}
-      </span>
-      <span className="flex items-center gap-2 font-mono text-sm">
-        {state && <StatusDot state={state} />}
-        {value}
-      </span>
-    </div>
-  );
-}
+const FEATURES = [
+  {
+    tone: "stage-applied",
+    title: "One record per application",
+    body: "Company, job description, resume used, recruiter, interviews and notes — together instead of scattered.",
+  },
+  {
+    tone: "stage-technical",
+    title: "A pipeline you can see",
+    body: "Move applications through stages on a board. Know what needs attention without rereading your inbox.",
+  },
+  {
+    tone: "stage-offer",
+    title: "Know what's working",
+    body: "Which sources get you interviews, which roles convert, where applications stall.",
+  },
+] as const;
 
 export default function Home() {
-  const { data, isPending, isError, error, refetch, isFetching } =
-    useQuery<HealthResponse>({
-      queryKey: ["health"],
-      queryFn: () => api.get<HealthResponse>("/health"),
-    });
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
 
-  const dbState = isPending
-    ? "pending"
-    : data?.database.connected
-      ? "ok"
-      : "bad";
+  useEffect(() => {
+    if (!isLoading && user) router.replace("/dashboard");
+  }, [isLoading, user, router]);
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-6 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight">ApplyFlow</h1>
-      <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-        Milestone 1 — foundation. This page verifies the full stack end to end.
-      </p>
-
-      <section className="mt-8 rounded-xl border border-black/10 p-5 dark:border-white/15">
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">
-          System status
-        </h2>
-
-        {isError ? (
-          <div className="rounded-lg bg-red-50 p-4 text-sm dark:bg-red-950/40">
-            <p className="font-medium text-red-700 dark:text-red-300">
-              Cannot reach the API
-            </p>
-            <p className="mt-1 text-red-600/80 dark:text-red-400/80">
-              {error instanceof Error ? error.message : "Unknown error"}
-            </p>
-            <p className="mt-3 font-mono text-xs text-red-600/70 dark:text-red-400/70">
-              Start it with: uvicorn app.main:app --reload
-            </p>
+    <div className="min-h-svh bg-background">
+      <header className="border-b border-border">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <span className="text-primary">
+              <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden>
+                <rect width="26" height="26" rx="7" fill="currentColor" opacity="0.16" />
+                <path
+                  d="M7.5 16.5 11 13l3 3 5-6.5"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <span className="font-semibold tracking-tight">ApplyFlow</span>
           </div>
-        ) : (
-          <div>
-            <Row
-              label="API"
-              value={isPending ? "checking…" : (data?.status ?? "—")}
-              state={isPending ? "pending" : data?.status === "ok" ? "ok" : "bad"}
-            />
-            <Row
-              label="Database"
-              value={
-                isPending
-                  ? "checking…"
-                  : data?.database.connected
-                    ? `connected · ${data.database.latency_ms}ms`
-                    : (data?.database.error ?? "unreachable")
-              }
-              state={dbState}
-            />
-            <Row label="Version" value={data?.version ?? "—"} />
-            <Row label="Environment" value={data?.environment ?? "—"} />
-          </div>
-        )}
 
-        <div className="mt-4 flex items-center justify-between">
-          <span className="font-mono text-xs text-neutral-400">
-            {API_BASE_URL}
-          </span>
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="rounded-md border border-black/10 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-black/5 disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/5"
-          >
-            {isFetching ? "Checking…" : "Re-check"}
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3.5")}
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/register"
+              className={cn(buttonVariants(), "h-9 px-3.5")}
+            >
+              Get started
+            </Link>
+          </div>
         </div>
-      </section>
-    </main>
+      </header>
+
+      <main className="mx-auto max-w-5xl px-6">
+        <section className="py-20 text-center sm:py-28">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
+            <span className="size-1.5 rounded-full bg-primary" />
+            Job search, organised
+          </span>
+
+          <h1 className="mx-auto mt-6 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
+            Where am I in my job search, and what&apos;s next?
+          </h1>
+
+          <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
+            ApplyFlow keeps every application, resume version, interview and
+            follow-up in one place — so nothing slips while you&apos;re applying
+            to thirty companies at once.
+          </p>
+
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/register"
+              className={cn(buttonVariants(), "h-11 px-6 text-[0.95rem]")}
+            >
+              Create your account
+            </Link>
+            <Link
+              href="/login"
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "h-11 px-6 text-[0.95rem]",
+              )}
+            >
+              I already have one
+            </Link>
+          </div>
+        </section>
+
+        <section className="grid gap-4 pb-24 sm:grid-cols-3">
+          {FEATURES.map((f) => (
+            <article
+              key={f.title}
+              className="rounded-xl border border-border bg-card p-6"
+            >
+              <span
+                className="inline-block size-8 rounded-lg"
+                style={{ background: `var(--${f.tone})`, opacity: 0.9 }}
+              />
+              <h2 className="mt-4 font-medium">{f.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {f.body}
+              </p>
+            </article>
+          ))}
+        </section>
+      </main>
+    </div>
   );
 }

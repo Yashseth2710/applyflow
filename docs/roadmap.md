@@ -7,7 +7,7 @@ never a dependency of the core product.
 |---|-----------|--------|
 | 0 | Environment & tooling | ✅ done |
 | 1 | Foundation — repo, docs, app skeletons, health check, CI | ✅ done |
-| 2 | Authentication — register, login, refresh, profile | ⬜ |
+| 2 | Authentication — register, login, refresh, profile | ✅ done |
 | 3 | Applications — CRUD, search, filters, Kanban | ⬜ |
 | 4 | Resumes — upload, versioning, association | ⬜ |
 | 5 | Interviews & reminders | ⬜ |
@@ -40,14 +40,34 @@ never a dependency of the core product.
 **Verified:** `/api/v1/health` returned `connected: true` against live Neon;
 ruff, mypy, pytest, eslint, tsc and `next build` all pass locally and in CI.
 
-### Next up — Milestone 2
+## Milestone 2 — Authentication ✅
 
-1. `User` and `Profile` models + first Alembic migration
-2. Argon2 password hashing, JWT issue/verify
-3. `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/me`
-4. `get_current_user` dependency
-5. Frontend auth context, login/register forms, protected routes
-6. Timezone captured at registration from the browser
+- [x] Design system: teal brand + 12-colour pipeline scale, light and dark
+- [x] `User` and `Profile` models, migration `b0eb60dcce1c` applied
+- [x] Argon2id hashing with transparent rehash on login
+- [x] JWT with enforced token type — a refresh token cannot act as an access token
+- [x] `/auth/register`, `/login`, `/refresh`, `/logout`, `/me`
+- [x] `get_current_user` dependency; identical 401 for every failure mode
+- [x] Frontend auth context with silent refresh, login/register/dashboard, route guard
+- [x] Browser timezone captured at registration, unknown zones fall back to IST
+- [x] 29 backend tests; 17-check live end-to-end run against Neon
+
+**Security decisions worth remembering**
+
+- Access token lives in a module variable, never `localStorage` — XSS cannot read it
+- Refresh token is httpOnly + SameSite=Lax, scoped to `/api/v1/auth`, rotated on use
+- Login returns one message for unknown-email and wrong-password, and verifies a
+  dummy hash when no user exists so response timing cannot reveal registered emails
+- Password capped at 128 chars: Argon2 hashes the whole input, so an unbounded
+  password is a cheap way to burn server CPU
+
+### Next up — Milestone 3
+
+1. `Application` model + migration, with status enum and history table
+2. Repository scoped by `user_id` so ownership can't be forgotten at the endpoint
+3. CRUD endpoints, search, filters, sorting, pagination
+4. Kanban board with drag-and-drop, using the stage colour tokens
+5. Application detail page
 
 ---
 

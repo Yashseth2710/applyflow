@@ -17,7 +17,7 @@ engine = create_engine(
     pool_recycle=300,
     pool_size=5,
     max_overflow=5,
-    echo=settings.DEBUG and not settings.is_production,
+    echo=settings.SQL_ECHO and not settings.is_production,
     connect_args={"connect_timeout": 15},
 )
 
