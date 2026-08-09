@@ -149,12 +149,12 @@ function Loaded({ resume }: { resume: ResumeDetail }) {
           role="status"
           className="mt-6 rounded-xl border border-warning/30 bg-warning-subtle px-4 py-3 text-sm"
         >
-          <p className="font-medium" style={{ color: "var(--warning-foreground)" }}>
+          {/* --warning-foreground belongs on the solid --warning background;
+              here it would be dark-on-dark. */}
+          <p className="font-medium" style={{ color: "var(--warning)" }}>
             {meta.label}
           </p>
-          <p className="mt-1" style={{ color: "var(--warning-foreground)", opacity: 0.85 }}>
-            {resume.extraction_error}
-          </p>
+          <p className="mt-1 text-foreground">{resume.extraction_error}</p>
         </div>
       )}
 

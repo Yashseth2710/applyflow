@@ -58,3 +58,13 @@ export type InterviewMode = Schemas["InterviewMode"];
 export type InterviewOutcome = Schemas["InterviewOutcome"];
 export type Reminder = Schemas["Reminder"];
 export type ReminderList = Schemas["ReminderList"];
+
+// ---- ai ----
+export type AITask = Schemas["AITask"];
+export type AIStatus = Schemas["AIStatus"];
+export type AIOutput = Schemas["AIOutputResponse"];
+export type AIOutputList = Schemas["AIOutputList"];
+export type JDAnalysis = Schemas["JDAnalysis"];
+export type ResumeMatch = Schemas["ResumeMatch"];
+export type InterviewPrep = Schemas["InterviewPrep"];
+export type InterviewQuestion = Schemas["InterviewQuestion"];

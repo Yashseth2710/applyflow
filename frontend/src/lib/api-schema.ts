@@ -447,10 +447,134 @@ export interface paths {
         patch: operations["update_interview_api_v1_interviews__interview_id__patch"];
         trace?: never;
     };
+    "/api/v1/ai/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Is AI available
+         * @description Lets the UI explain why AI is unavailable instead of failing on click.
+         */
+        get: operations["get_status_api_v1_ai_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/applications/{application_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everything generated for an application */
+        get: operations["list_outputs_api_v1_ai_applications__application_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/applications/{application_id}/{task}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate, or return what was generated before
+         * @description Cached by default. Generations cost seconds and quota, so repeat views
+         *     reuse the stored answer unless the inputs changed or force is set.
+         */
+        post: operations["generate_api_v1_ai_applications__application_id___task__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AIOutputList */
+        AIOutputList: {
+            /** Items */
+            items: components["schemas"]["AIOutputResponse"][];
+        };
+        /**
+         * AIOutputResponse
+         * @description One cached generation.
+         *
+         *     The result is carried in a field typed for its task rather than an untyped
+         *     blob. The database stores JSON, but the API describes exactly what each task
+         *     produces, so the client gets real types instead of casting a dictionary.
+         *
+         *     `stale` means the job description or resume changed after this was written,
+         *     so it describes text that no longer exists. Shown rather than deleted — an
+         *     old answer with a warning beats no answer.
+         */
+        AIOutputResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            task: components["schemas"]["AITask"];
+            analysis?: components["schemas"]["JDAnalysis"] | null;
+            match?: components["schemas"]["ResumeMatch"] | null;
+            prep?: components["schemas"]["InterviewPrep"] | null;
+            /** Text */
+            text?: string | null;
+            /** Model */
+            model: string;
+            /** Provider */
+            provider: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /**
+             * Stale
+             * @default false
+             */
+            stale: boolean;
+        };
+        /**
+         * AIStatus
+         * @description Whether AI is usable, so the UI can explain itself instead of failing.
+         */
+        AIStatus: {
+            /** Enabled */
+            enabled: boolean;
+            /** Provider */
+            provider: string;
+            /** Detail */
+            detail: string;
+        };
+        /**
+         * AITask
+         * @enum {string}
+         */
+        AITask: "jd_analysis" | "resume_match" | "cover_letter" | "interview_questions";
         /** ApplicationCreate */
         ApplicationCreate: {
             /** Company Name */
@@ -777,6 +901,39 @@ export interface components {
          * @enum {string}
          */
         InterviewOutcome: "pending" | "passed" | "failed" | "cancelled";
+        /** InterviewPrep */
+        InterviewPrep: {
+            /**
+             * Questions
+             * @default []
+             */
+            questions: components["schemas"]["InterviewQuestion"][];
+            /**
+             * Questions To Ask
+             * @default []
+             */
+            questions_to_ask: string[];
+        };
+        /** InterviewQuestion */
+        InterviewQuestion: {
+            /** Question */
+            question: string;
+            /**
+             * Category
+             * @default role
+             */
+            category: string;
+            /**
+             * Why
+             * @default
+             */
+            why: string;
+            /**
+             * Hint
+             * @default
+             */
+            hint: string;
+        };
         /** InterviewResponse */
         InterviewResponse: {
             /**
@@ -899,6 +1056,44 @@ export interface components {
             /** Job Title */
             job_title: string;
             application_status: components["schemas"]["ApplicationStatus"];
+        };
+        /** JDAnalysis */
+        JDAnalysis: {
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /**
+             * Seniority
+             * @default unclear
+             */
+            seniority: string;
+            /**
+             * Must Have Skills
+             * @default []
+             */
+            must_have_skills: string[];
+            /**
+             * Nice To Have Skills
+             * @default []
+             */
+            nice_to_have_skills: string[];
+            /**
+             * Responsibilities
+             * @default []
+             */
+            responsibilities: string[];
+            /**
+             * Keywords
+             * @default []
+             */
+            keywords: string[];
+            /**
+             * Watch Outs
+             * @default []
+             */
+            watch_outs: string[];
         };
         /** LoginRequest */
         LoginRequest: {
@@ -1053,6 +1248,39 @@ export interface components {
              * @default []
              */
             versions: components["schemas"]["ResumeResponse"][];
+        };
+        /** ResumeMatch */
+        ResumeMatch: {
+            /**
+             * Score
+             * @default 0
+             */
+            score: number;
+            /**
+             * Verdict
+             * @default
+             */
+            verdict: string;
+            /**
+             * Matched Skills
+             * @default []
+             */
+            matched_skills: string[];
+            /**
+             * Missing Skills
+             * @default []
+             */
+            missing_skills: string[];
+            /**
+             * Strengths
+             * @default []
+             */
+            strengths: string[];
+            /**
+             * Suggestions
+             * @default []
+             */
+            suggestions: string[];
         };
         /**
          * ResumeResponse
@@ -2167,6 +2395,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InterviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_status_api_v1_ai_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIStatus"];
+                };
+            };
+        };
+    };
+    list_outputs_api_v1_ai_applications__application_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIOutputList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_api_v1_ai_applications__application_id___task__post: {
+        parameters: {
+            query?: {
+                /** @description Regenerate even if cached */
+                force?: boolean;
+            };
+            header?: never;
+            path: {
+                application_id: string;
+                task: components["schemas"]["AITask"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIOutputResponse"];
                 };
             };
             /** @description Validation Error */

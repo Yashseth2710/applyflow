@@ -166,7 +166,7 @@ function InterviewRow({ interview }: { interview: Interview }) {
 
       {needsOutcome && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs" style={{ color: "var(--warning-foreground)" }}>
+          <span className="text-xs font-medium" style={{ color: "var(--warning)" }}>
             How did it go?
           </span>
           {(["passed", "failed", "cancelled"] as InterviewOutcome[]).map((outcome) => (

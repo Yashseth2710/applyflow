@@ -22,6 +22,7 @@ from app.models.base import Base, TimestampMixin, UUIDMixin
 from app.models.enums import ApplicationStatus, EmploymentType, WorkMode
 
 if TYPE_CHECKING:
+    from app.models.ai_output import AIOutput
     from app.models.interview import Interview
     from app.models.user import User
 
@@ -94,6 +95,10 @@ class Application(Base, UUIDMixin, TimestampMixin):
         back_populates="application",
         cascade="all, delete-orphan",
         order_by="Interview.scheduled_at",
+    )
+    ai_outputs: Mapped[list["AIOutput"]] = relationship(
+        back_populates="application",
+        cascade="all, delete-orphan",
     )
 
     __table_args__ = (

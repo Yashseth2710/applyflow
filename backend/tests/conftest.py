@@ -7,8 +7,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_ai_provider
 from app.core.database import engine, get_db
 from app.main import app
+from app.services.ai import MockProvider
 
 
 @pytest.fixture
@@ -40,6 +42,9 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
+    # Pinned for every test: without this a developer's AI_PROVIDER setting
+    # would decide whether the suite called a live API and burned real quota.
+    app.dependency_overrides[get_ai_provider] = MockProvider
     try:
         with TestClient(app) as c:
             yield c

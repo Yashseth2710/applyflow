@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/applications/status-badge";
+import { AIPanel } from "@/components/ai/ai-panel";
 import { InterviewSection } from "@/components/interviews/interview-section";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -164,6 +165,8 @@ function Detail() {
               </a>
             )}
           </section>
+
+          <AIPanel applicationId={id} />
 
           <InterviewSection applicationId={id} />
 

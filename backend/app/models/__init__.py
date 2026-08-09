@@ -4,6 +4,7 @@ Every model must be imported here so Alembic autogenerate sees it on
 Base.metadata.
 """
 
+from app.models.ai_output import AIOutput
 from app.models.application import Application, ApplicationStatusHistory
 from app.models.base import Base, TimestampMixin, UUIDMixin
 from app.models.enums import (
@@ -29,6 +30,7 @@ __all__ = [
     "CLOSED_STATUSES",
     "INTERVIEW_STATUSES",
     "SETTLED_OUTCOMES",
+    "AIOutput",
     "Application",
     "ApplicationStatus",
     "ApplicationStatusHistory",

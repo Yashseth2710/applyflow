@@ -59,18 +59,12 @@ function ReminderRow({ reminder }: { reminder: Reminder }) {
         aria-hidden
       />
       <div className="min-w-0">
-        <p
-          className="truncate text-sm font-medium"
-          style={warning ? { color: "var(--warning-foreground)" } : undefined}
-        >
-          {reminder.title}
-        </p>
+        {/* Deliberately not --warning-foreground: that pairs with the solid
+            --warning background, and on the subtle one it is dark-on-dark. */}
+        <p className="truncate text-sm font-medium text-foreground">{reminder.title}</p>
         <p
           className="mt-0.5 text-xs"
-          style={{
-            color: warning ? "var(--warning-foreground)" : "var(--muted-foreground)",
-            opacity: warning ? 0.85 : 1,
-          }}
+          style={{ color: warning ? "var(--warning)" : "var(--muted-foreground)" }}
         >
           {reminder.detail}
         </p>
