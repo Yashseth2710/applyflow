@@ -57,6 +57,50 @@ INTERVIEW_STATUSES: frozenset[ApplicationStatus] = frozenset(
 )
 
 
+class InterviewRound(str, enum.Enum):
+    """Finer grained than ApplicationStatus on purpose.
+
+    An application sits in one stage; a stage can contain several interviews,
+    and "which round was that" is a different question from "where is this
+    application".
+    """
+
+    PHONE_SCREEN = "phone_screen"
+    TECHNICAL = "technical"
+    TAKE_HOME = "take_home"
+    SYSTEM_DESIGN = "system_design"
+    HR = "hr"
+    MANAGERIAL = "managerial"
+    FINAL = "final"
+    OTHER = "other"
+
+
+class InterviewMode(str, enum.Enum):
+    ONSITE = "onsite"
+    VIDEO = "video"
+    PHONE = "phone"
+
+
+class InterviewOutcome(str, enum.Enum):
+    """PENDING covers both "not happened yet" and "happened, still waiting" —
+    the scheduled time tells those apart without a second field."""
+
+    PENDING = "pending"
+    PASSED = "passed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+#: Outcomes that mean nothing further is expected of this interview.
+SETTLED_OUTCOMES: frozenset[InterviewOutcome] = frozenset(
+    {
+        InterviewOutcome.PASSED,
+        InterviewOutcome.FAILED,
+        InterviewOutcome.CANCELLED,
+    }
+)
+
+
 class ExtractionStatus(str, enum.Enum):
     """Outcome of pulling text out of an uploaded file.
 

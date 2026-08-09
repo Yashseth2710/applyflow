@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { StatusBadge } from "@/components/applications/status-badge";
+import {
+  RemindersPanel,
+  UpcomingInterviews,
+} from "@/components/interviews/reminders-panel";
 import { AppShell } from "@/components/layout/app-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,7 +80,10 @@ function Dashboard() {
 
   const tiles = [
     { label: "Applications", value: counts.total, token: "--stage-applied" },
-    { label: "Interviews", value: counts.interviews, token: "--stage-technical" },
+    // "Interviewing", not "Interviews" — this counts applications sitting at an
+    // interview stage, which is a different number from how many interviews are
+    // booked, and the two panels below show that number.
+    { label: "Interviewing", value: counts.interviews, token: "--stage-technical" },
     { label: "Offers", value: counts.offers, token: "--stage-offer" },
     { label: "Rejections", value: counts.rejections, token: "--stage-rejected" },
   ];
@@ -133,8 +140,14 @@ function Dashboard() {
         </section>
       ) : (
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
-          <Pipeline data={data} isPending={isPending} />
-          <Recent applications={recent} isPending={isPending} />
+          <div className="space-y-6">
+            <RemindersPanel />
+            <Pipeline data={data} isPending={isPending} />
+          </div>
+          <div className="space-y-6">
+            <UpcomingInterviews />
+            <Recent applications={recent} isPending={isPending} />
+          </div>
         </div>
       )}
     </main>

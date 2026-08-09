@@ -1,5 +1,6 @@
 """Resume upload, versioning, extraction and access control."""
 
+import uuid
 from collections.abc import Generator
 
 import pytest
@@ -82,8 +83,17 @@ def resume_client(client: TestClient, db_session: Session) -> Generator[TestClie
         app.dependency_overrides.pop(get_storage, None)
 
 
-def stored_keys(db: Session) -> list[str]:
-    return list(db.execute(select(StoredFile.key)).scalars().all())
+def stored_keys(db: Session, owner_id: str) -> list[str]:
+    """Scoped to one account on purpose.
+
+    The suite runs against a shared database, so counting every row in the table
+    asserts on whatever else happens to be there rather than on this test.
+    """
+    return list(
+        db.execute(select(StoredFile.key).where(StoredFile.owner_id == uuid.UUID(owner_id)))
+        .scalars()
+        .all()
+    )
 
 
 def upload(
@@ -125,10 +135,15 @@ def test_upload_stores_file_and_extracts_text(resume_client, registered_user, db
     assert body["size_bytes"] > 0
 
     # The bytes actually reached storage.
-    stored = db_session.execute(select(StoredFile)).scalars().all()
+    stored = (
+        db_session.execute(
+            select(StoredFile).where(StoredFile.owner_id == uuid.UUID(registered_user["id"]))
+        )
+        .scalars()
+        .all()
+    )
     assert len(stored) == 1
     assert stored[0].content.startswith(b"%PDF-")
-    assert stored[0].owner_id is not None
 
     text = resume_client.get(
         f"/api/v1/resumes/{body['id']}/text", headers=registered_user["headers"]
@@ -286,7 +301,9 @@ def test_download_reports_a_missing_file_rather_than_crashing(
     """Shouldn't happen now that the bytes commit with the row, but a resume
     restored from an older backup could still land here."""
     uploaded = upload(resume_client, registered_user).json()
-    db_session.query(StoredFile).delete()
+    db_session.query(StoredFile).filter(
+        StoredFile.owner_id == uuid.UUID(registered_user["id"])
+    ).delete()
     db_session.flush()
 
     r = resume_client.get(
@@ -383,22 +400,22 @@ def test_deleting_the_current_version_promotes_the_previous_one(resume_client, r
 
 def test_deleting_removes_the_stored_file(resume_client, registered_user, db_session):
     uploaded = upload(resume_client, registered_user).json()
-    assert stored_keys(db_session)
+    assert stored_keys(db_session, registered_user["id"])
 
     resume_client.delete(f"/api/v1/resumes/{uploaded['id']}", headers=registered_user["headers"])
-    assert stored_keys(db_session) == []
+    assert stored_keys(db_session, registered_user["id"]) == []
 
 
 def test_deleting_the_account_removes_its_files(resume_client, registered_user, db_session):
     """The bytes hang off the user, so the database cleans them up rather than
     trusting the application to remember."""
     upload(resume_client, registered_user)
-    assert stored_keys(db_session)
+    assert stored_keys(db_session, registered_user["id"])
 
     db_session.execute(sql_text("DELETE FROM users WHERE id = :id"), {"id": registered_user["id"]})
     db_session.flush()
 
-    assert stored_keys(db_session) == []
+    assert stored_keys(db_session, registered_user["id"]) == []
 
 
 # ---- access control ----

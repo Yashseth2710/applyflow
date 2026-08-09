@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/applications/status-badge";
+import { InterviewSection } from "@/components/interviews/interview-section";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -163,6 +164,8 @@ function Detail() {
               </a>
             )}
           </section>
+
+          <InterviewSection applicationId={id} />
 
           {data.resume_id && <LinkedResume resumeId={data.resume_id} />}
 

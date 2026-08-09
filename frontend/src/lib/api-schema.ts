@@ -369,6 +369,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interviews/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Interviews coming up
+         * @description Declared above /{interview_id} so the literal path is reachable.
+         */
+        get: operations["list_upcoming_api_v1_interviews_upcoming_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Things needing attention
+         * @description Derived from interviews and application dates on each request — there is
+         *     no reminders table and nothing to keep in sync.
+         */
+        get: operations["list_reminders_api_v1_interviews_reminders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Interviews for one application */
+        get: operations["list_for_application_api_v1_interviews_get"];
+        put?: never;
+        /** Schedule an interview */
+        post: operations["create_interview_api_v1_interviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one interview */
+        get: operations["get_interview_api_v1_interviews__interview_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete an interview */
+        delete: operations["delete_interview_api_v1_interviews__interview_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update an interview */
+        patch: operations["update_interview_api_v1_interviews__interview_id__patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -660,6 +738,168 @@ export interface components {
             environment: string;
             database: components["schemas"]["DatabaseHealth"];
         };
+        /** InterviewCreate */
+        InterviewCreate: {
+            round: components["schemas"]["InterviewRound"];
+            mode?: components["schemas"]["InterviewMode"] | null;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /** Location */
+            location?: string | null;
+            /** Interviewer */
+            interviewer?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Feedback */
+            feedback?: string | null;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /** @default pending */
+            outcome: components["schemas"]["InterviewOutcome"];
+        };
+        /**
+         * InterviewMode
+         * @enum {string}
+         */
+        InterviewMode: "onsite" | "video" | "phone";
+        /**
+         * InterviewOutcome
+         * @description PENDING covers both "not happened yet" and "happened, still waiting" —
+         *     the scheduled time tells those apart without a second field.
+         * @enum {string}
+         */
+        InterviewOutcome: "pending" | "passed" | "failed" | "cancelled";
+        /** InterviewResponse */
+        InterviewResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            round: components["schemas"]["InterviewRound"];
+            mode: components["schemas"]["InterviewMode"] | null;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
+            /** Duration Minutes */
+            duration_minutes: number | null;
+            /** Location */
+            location: string | null;
+            /** Interviewer */
+            interviewer: string | null;
+            /** Notes */
+            notes: string | null;
+            /** Feedback */
+            feedback: string | null;
+            outcome: components["schemas"]["InterviewOutcome"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * InterviewRound
+         * @description Finer grained than ApplicationStatus on purpose.
+         *
+         *     An application sits in one stage; a stage can contain several interviews,
+         *     and "which round was that" is a different question from "where is this
+         *     application".
+         * @enum {string}
+         */
+        InterviewRound: "phone_screen" | "technical" | "take_home" | "system_design" | "hr" | "managerial" | "final" | "other";
+        /**
+         * InterviewUpdate
+         * @description PATCH semantics. The application it belongs to is deliberately absent —
+         *     moving an interview between applications would rewrite history.
+         */
+        InterviewUpdate: {
+            round?: components["schemas"]["InterviewRound"] | null;
+            mode?: components["schemas"]["InterviewMode"] | null;
+            /** Scheduled At */
+            scheduled_at?: string | null;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /** Location */
+            location?: string | null;
+            /** Interviewer */
+            interviewer?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Feedback */
+            feedback?: string | null;
+            outcome?: components["schemas"]["InterviewOutcome"] | null;
+        };
+        /**
+         * InterviewWithApplication
+         * @description For lists that aren't already inside one application, where "Acme —
+         *     Backend Engineer" is the only thing that makes a row meaningful.
+         */
+        InterviewWithApplication: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            round: components["schemas"]["InterviewRound"];
+            mode: components["schemas"]["InterviewMode"] | null;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
+            /** Duration Minutes */
+            duration_minutes: number | null;
+            /** Location */
+            location: string | null;
+            /** Interviewer */
+            interviewer: string | null;
+            /** Notes */
+            notes: string | null;
+            /** Feedback */
+            feedback: string | null;
+            outcome: components["schemas"]["InterviewOutcome"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Company Name */
+            company_name: string;
+            /** Job Title */
+            job_title: string;
+            application_status: components["schemas"]["ApplicationStatus"];
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -724,6 +964,48 @@ export interface components {
              * @description IANA timezone from the browser, e.g. Asia/Kolkata
              */
             timezone?: string | null;
+        };
+        /**
+         * Reminder
+         * @description Worked out from the data on each request rather than stored.
+         *
+         *     A reminders table would need a scheduler to fill it and would go stale the
+         *     moment an interview moved; derived ones cannot disagree with the data.
+         */
+        Reminder: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "interview_upcoming" | "interview_needs_outcome" | "application_stale";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "info" | "warning";
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Application Id
+             * Format: uuid
+             */
+            application_id: string;
+            /** Interview Id */
+            interview_id?: string | null;
+            /**
+             * Occurs At
+             * Format: date-time
+             */
+            occurs_at: string;
+        };
+        /** ReminderList */
+        ReminderList: {
+            /** Items */
+            items: components["schemas"]["Reminder"][];
+            /** Total */
+            total: number;
         };
         /** ResumeDetailResponse */
         ResumeDetailResponse: {
@@ -1675,6 +1957,216 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResumeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_upcoming_api_v1_interviews_upcoming_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewWithApplication"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reminders_api_v1_interviews_reminders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderList"];
+                };
+            };
+        };
+    };
+    list_for_application_api_v1_interviews_get: {
+        parameters: {
+            query: {
+                application_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_interview_api_v1_interviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_interview_api_v1_interviews__interview_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_interview_api_v1_interviews__interview_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_interview_api_v1_interviews__interview_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewResponse"];
                 };
             };
             /** @description Validation Error */

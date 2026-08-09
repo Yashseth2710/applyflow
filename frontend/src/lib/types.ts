@@ -47,3 +47,14 @@ export type ResumeUpdate = Schemas["ResumeUpdate"];
 export type ResumeText = Schemas["ResumeTextResponse"];
 export type ResumeUsage = Schemas["ResumeUsageResponse"];
 export type ExtractionStatus = Schemas["ExtractionStatus"];
+
+// ---- interviews ----
+export type Interview = Schemas["InterviewResponse"];
+export type InterviewWithApplication = Schemas["InterviewWithApplication"];
+export type InterviewCreate = Schemas["InterviewCreate"];
+export type InterviewUpdate = Schemas["InterviewUpdate"];
+export type InterviewRound = Schemas["InterviewRound"];
+export type InterviewMode = Schemas["InterviewMode"];
+export type InterviewOutcome = Schemas["InterviewOutcome"];
+export type Reminder = Schemas["Reminder"];
+export type ReminderList = Schemas["ReminderList"];
