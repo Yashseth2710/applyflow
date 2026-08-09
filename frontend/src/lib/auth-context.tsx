@@ -29,6 +29,21 @@ function detectTimezone(): string | undefined {
   }
 }
 
+/**
+ * Readable flag the backend sets alongside the httpOnly refresh cookie.
+ *
+ * Without it there is no way to know a session might exist, so every logged-out
+ * visitor triggers a /auth/refresh that 401s — a wasted round-trip before first
+ * paint and a red console error on every public page. This is only a hint: the
+ * real token is still required, so forging it achieves nothing.
+ */
+function hasSessionHint(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie
+    .split(";")
+    .some((c) => c.trim().startsWith("applyflow_session="));
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,13 +56,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
+        // Nothing to restore, and no reason to ask the server.
+        if (!hasSessionHint()) return;
+
         const refreshed = await refreshAccessToken();
         if (!refreshed || cancelled) return;
 
         const me = await api.get<User>("/auth/me");
         if (!cancelled) setUser(me);
       } catch {
-        // No valid session. Not an error — this is every logged-out visitor.
+        // Expired or revoked session. Not an error worth surfacing.
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -92,6 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear local state even if the request failed — the user asked to
       // leave, so honour that regardless of the network.
       clearAccessToken();
+      // Drop the hint too, so a failed logout request doesn't leave the next
+      // page load attempting a refresh that cannot succeed.
+      document.cookie = "applyflow_session=; Max-Age=0; path=/";
       setUser(null);
       router.push("/login");
     }

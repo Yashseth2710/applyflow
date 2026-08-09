@@ -29,12 +29,23 @@ REFRESH_COOKIE_NAME = "applyflow_refresh"
 # it is only ever needed by /refresh and /logout.
 REFRESH_COOKIE_PATH = f"{settings.API_V1_PREFIX}/auth"
 
+# A readable companion flag carrying no secret. The refresh cookie is httpOnly
+# by design, so the frontend cannot tell whether a session exists and would call
+# /refresh on every page load — a wasted round-trip and a console 401 for every
+# logged-out visitor. This lets the client skip that call. It is only a hint:
+# forging it grants nothing, since the real token is still required.
+SESSION_HINT_COOKIE_NAME = "applyflow_session"
+
+
+def _cookie_max_age() -> int:
+    return settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+
 
 def _set_refresh_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key=REFRESH_COOKIE_NAME,
         value=token,
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        max_age=_cookie_max_age(),
         # httponly: unreadable by JavaScript, so XSS cannot steal the session.
         httponly=True,
         # secure: HTTPS only. Disabled in development because localhost is HTTP.
@@ -44,6 +55,15 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         samesite="lax",
         path=REFRESH_COOKIE_PATH,
     )
+    response.set_cookie(
+        key=SESSION_HINT_COOKIE_NAME,
+        value="1",
+        max_age=_cookie_max_age(),
+        httponly=False,  # deliberately readable — carries no secret
+        secure=settings.is_production,
+        samesite="lax",
+        path="/",
+    )
 
 
 def _clear_refresh_cookie(response: Response) -> None:
@@ -51,6 +71,13 @@ def _clear_refresh_cookie(response: Response) -> None:
         key=REFRESH_COOKIE_NAME,
         path=REFRESH_COOKIE_PATH,
         httponly=True,
+        secure=settings.is_production,
+        samesite="lax",
+    )
+    response.delete_cookie(
+        key=SESSION_HINT_COOKIE_NAME,
+        path="/",
+        httponly=False,
         secure=settings.is_production,
         samesite="lax",
     )

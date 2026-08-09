@@ -76,6 +76,27 @@ class TestRegister:
         assert "samesite=lax" in cookie_header
         assert "path=/api/v1/auth" in cookie_header
 
+    def test_sets_readable_session_hint_cookie(self, client: TestClient, unique_email: str) -> None:
+        """A companion flag the frontend can read, so logged-out visitors don't
+        fire a doomed /refresh on every page load. It must carry no secret."""
+        r = client.post(REGISTER, json=_register_payload(unique_email))
+
+        hint = client.cookies.get("applyflow_session")
+        assert hint == "1"
+
+        headers = "; ".join(v for k, v in r.headers.items() if k.lower() == "set-cookie")
+        assert "applyflow_session" in headers
+        # The hint must not be httpOnly, or the frontend cannot read it.
+        session_part = [
+            part
+            for part in r.headers.get_list("set-cookie")
+            if part.startswith("applyflow_session=")
+        ]
+        assert session_part, "expected a session hint cookie"
+        assert "httponly" not in session_part[0].lower()
+        # And it must not leak the refresh token.
+        assert client.cookies.get("applyflow_refresh") not in session_part[0]
+
     def test_duplicate_email_rejected(self, client: TestClient, unique_email: str) -> None:
         client.post(REGISTER, json=_register_payload(unique_email))
 
@@ -232,3 +253,12 @@ class TestLogout:
         r = client.post(REFRESH)
 
         assert r.status_code == 401
+
+    def test_clears_session_hint(self, client: TestClient, registered_user: dict) -> None:
+        """A stale hint would make every later page load attempt a refresh
+        that cannot succeed."""
+        assert client.cookies.get("applyflow_session") == "1"
+
+        client.post(LOGOUT)
+
+        assert not client.cookies.get("applyflow_session")
