@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ThemedSelect } from "@/components/ui/themed-select";
 import { ApiError } from "@/lib/api-client";
 import { ALL_STATUSES, STATUS_META } from "@/lib/application-status";
+import { useResumes } from "@/lib/resumes";
 import type { ApplicationDetail, ApplicationStatus } from "@/lib/types";
 
 // Mirrors the backend rules so mistakes surface before a round trip. The
@@ -28,6 +29,7 @@ const schema = z
       .enum(["", "full_time", "part_time", "contract", "internship"])
       .optional(),
     source: z.string().max(100).optional(),
+    resume_id: z.string().optional(),
     job_url: z.string().max(2000).optional(),
     salary_min: z.string().optional(),
     salary_max: z.string().optional(),
@@ -67,6 +69,7 @@ export function ApplicationForm({
 }) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
+  const { data: resumes } = useResumes();
 
   const {
     register,
@@ -83,6 +86,7 @@ export function ApplicationForm({
       work_mode: initial?.work_mode ?? "",
       employment_type: initial?.employment_type ?? "",
       source: initial?.source ?? "",
+      resume_id: initial?.resume_id ?? "",
       job_url: initial?.job_url ?? "",
       salary_min: initial?.salary_min?.toString() ?? "",
       salary_max: initial?.salary_max?.toString() ?? "",
@@ -101,6 +105,7 @@ export function ApplicationForm({
         work_mode: values.work_mode || null,
         employment_type: values.employment_type || null,
         source: toStringOrNull(values.source),
+        resume_id: values.resume_id || null,
         job_url: toStringOrNull(values.job_url),
         salary_min: toNumberOrNull(values.salary_min),
         salary_max: toNumberOrNull(values.salary_max),
@@ -245,6 +250,37 @@ export function ApplicationForm({
 
           <Field label="Job posting URL" htmlFor="job_url">
             <Input id="job_url" placeholder="https://…" {...register("job_url")} />
+          </Field>
+
+          <Field
+            label="Resume used"
+            htmlFor="resume_id"
+            hint={
+              resumes && resumes.length === 0
+                ? "Upload one on the Resumes page to link it here"
+                : "Which version you sent"
+            }
+          >
+            <Controller
+              control={control}
+              name="resume_id"
+              render={({ field }) => (
+                <ThemedSelect
+                  id="resume_id"
+                  aria-label="Resume used"
+                  placeholder="None"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  options={[
+                    { value: "", label: "None" },
+                    ...(resumes ?? []).map((r) => ({
+                      value: r.id,
+                      label: r.version > 1 ? `${r.title} (v${r.version})` : r.title,
+                    })),
+                  ]}
+                />
+              )}
+            />
           </Field>
 
           <Field label="Salary from" htmlFor="salary_min">

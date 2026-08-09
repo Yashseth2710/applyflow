@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     # ---- Uploads ----
     MAX_UPLOAD_SIZE_MB: int = 5
     ALLOWED_UPLOAD_TYPES: str = "application/pdf"
+    # "postgres" keeps files in the database, which is the only option that
+    # survives a redeploy on a host with an ephemeral filesystem. "local" writes
+    # to UPLOAD_DIR and is there for poking at files by hand.
+    STORAGE_BACKEND: Literal["postgres", "local"] = "postgres"
     UPLOAD_DIR: str = "./uploads"
 
     # ---- AI ----

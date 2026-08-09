@@ -57,6 +57,20 @@ INTERVIEW_STATUSES: frozenset[ApplicationStatus] = frozenset(
 )
 
 
+class ExtractionStatus(str, enum.Enum):
+    """Outcome of pulling text out of an uploaded file.
+
+    EMPTY is separate from FAILED on purpose: a scanned resume parses fine and
+    yields nothing, and telling someone their file is unreadable is more useful
+    than showing a blank page.
+    """
+
+    PENDING = "pending"
+    OK = "ok"
+    EMPTY = "empty"
+    FAILED = "failed"
+
+
 class WorkMode(str, enum.Enum):
     ONSITE = "onsite"
     HYBRID = "hybrid"

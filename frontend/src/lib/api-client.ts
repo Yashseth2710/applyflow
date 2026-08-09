@@ -26,6 +26,8 @@ interface RequestOptions extends RequestInit {
   _isRetry?: boolean;
   /** Skip the token/refresh machinery (used by the auth endpoints). */
   skipAuth?: boolean;
+  /** Return the Response untouched, for downloads and other non-JSON bodies. */
+  rawResponse?: boolean;
 }
 
 /** Shared across concurrent 401s so five parallel requests trigger one
@@ -61,7 +63,13 @@ async function refreshAccessToken(): Promise<boolean> {
 
 async function request<T>(
   path: string,
-  { timeoutMs = 30_000, _isRetry = false, skipAuth = false, ...init }: RequestOptions = {},
+  {
+    timeoutMs = 30_000,
+    _isRetry = false,
+    skipAuth = false,
+    rawResponse = false,
+    ...init
+  }: RequestOptions = {},
 ): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -69,12 +77,16 @@ async function request<T>(
   try {
     const token = skipAuth ? null : getAccessToken();
 
+    // FormData sets its own Content-Type, including the multipart boundary.
+    // Setting it by hand produces a body the server cannot parse.
+    const isFormData = init.body instanceof FormData;
+
     const res = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       credentials: "include",
       signal: controller.signal,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init.headers,
       },
@@ -87,21 +99,25 @@ async function request<T>(
           ...init,
           timeoutMs,
           skipAuth,
+          rawResponse,
           _isRetry: true,
         });
       }
     }
 
-    if (res.status === 204) return undefined as T;
-
-    const isJson = res.headers.get("content-type")?.includes("application/json");
-    const body = isJson ? await res.json() : await res.text();
-
     if (!res.ok) {
+      const isJson = res.headers.get("content-type")?.includes("application/json");
+      const body = isJson ? await res.json() : await res.text();
       throw new ApiError(res.status, extractDetail(body, res.statusText), body);
     }
 
-    return body as T;
+    // Checked before reading the body — a raw caller wants it unconsumed.
+    if (rawResponse) return res as T;
+
+    if (res.status === 204) return undefined as T;
+
+    const isJson = res.headers.get("content-type")?.includes("application/json");
+    return (isJson ? await res.json() : await res.text()) as T;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new ApiError(408, "Request timed out. Please try again.");
@@ -152,6 +168,15 @@ export const api = {
 
   delete: <T>(path: string, opts?: RequestOptions) =>
     request<T>(path, { ...opts, method: "DELETE" }),
+
+  // Longer timeout than the default: uploads carry megabytes, and the server
+  // parses the file before it answers.
+  upload: <T>(path: string, form: FormData, opts?: RequestOptions) =>
+    request<T>(path, { timeoutMs: 120_000, ...opts, method: "POST", body: form }),
+
+  /** For file bodies. The caller reads the Response itself. */
+  raw: (path: string, opts?: RequestOptions) =>
+    request<Response>(path, { timeoutMs: 120_000, ...opts, rawResponse: true }),
 };
 
 export { API_BASE_URL, refreshAccessToken };

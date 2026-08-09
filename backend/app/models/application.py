@@ -70,7 +70,11 @@ class Application(Base, UUIDMixin, TimestampMixin):
 
     # SET NULL, not CASCADE: deleting a resume must not delete the history of
     # applications it was used for.
-    resume_id: Mapped[uuid.UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    resume_id: Mapped[uuid.UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("resumes.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     date_posted: Mapped[date | None] = mapped_column(Date)
     date_applied: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

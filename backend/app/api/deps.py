@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import TokenError, decode_token
+from app.core.storage import Storage, build_storage
 from app.models.user import User
 
 # auto_error=False so a missing header gives our own 401 shape, not FastAPI's.
@@ -18,6 +19,15 @@ _CREDENTIALS_ERROR = HTTPException(
     detail="Not authenticated",
     headers={"WWW-Authenticate": "Bearer"},
 )
+
+
+def get_storage(db: Session = Depends(get_db)) -> Storage:
+    """The configured storage backend.
+
+    A dependency rather than a module-level singleton because the database
+    backend needs the request's session, and because tests override it.
+    """
+    return build_storage(db)
 
 
 def get_current_user(

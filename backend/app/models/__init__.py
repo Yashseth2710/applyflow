@@ -12,9 +12,12 @@ from app.models.enums import (
     ApplicationStatus,
     CareerLevel,
     EmploymentType,
+    ExtractionStatus,
     WorkMode,
 )
 from app.models.profile import Profile
+from app.models.resume import Resume
+from app.models.stored_file import StoredFile
 from app.models.user import User
 
 __all__ = [
@@ -26,7 +29,10 @@ __all__ = [
     "Base",
     "CareerLevel",
     "EmploymentType",
+    "ExtractionStatus",
     "Profile",
+    "Resume",
+    "StoredFile",
     "TimestampMixin",
     "UUIDMixin",
     "User",

@@ -139,10 +139,8 @@ export interface paths {
         };
         /**
          * Applications by stage
-         * @description Grouped in one query rather than one request per column.
-         *
-         *     Every status is returned, including terminal ones — the frontend decides
-         *     which to show as columns and which to collapse.
+         * @description One query, not one per column. Returns every status; the frontend
+         *     decides which get columns and which collapse.
          */
         get: operations["get_board_api_v1_applications_board_get"];
         put?: never;
@@ -162,7 +160,7 @@ export interface paths {
         };
         /**
          * Sources used so far
-         * @description Powers the source filter dropdown without a fixed enum.
+         * @description Feeds the source filter without needing a fixed enum.
          */
         get: operations["list_sources_api_v1_applications_sources_get"];
         put?: never;
@@ -210,6 +208,165 @@ export interface paths {
          * @description Separate from PATCH /{id} so every stage change is written to history.
          */
         patch: operations["change_status_api_v1_applications__application_id__status_patch"];
+        trace?: never;
+    };
+    "/api/v1/resumes/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Upload limits
+         * @description Lets the client reject a file before sending it rather than after.
+         *
+         *     Declared above /{resume_id} — a literal path registered after a parameterised
+         *     one of the same shape is never reached.
+         */
+        get: operations["get_upload_limits_api_v1_resumes_limits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List resumes
+         * @description Current version of each resume. Older ones come from /{id}/versions.
+         */
+        get: operations["list_resumes_api_v1_resumes_get"];
+        put?: never;
+        /**
+         * Upload a resume
+         * @description Pass replaces_id to add a version to an existing resume rather than
+         *     creating a new one.
+         */
+        post: operations["upload_resume_api_v1_resumes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one resume */
+        get: operations["get_resume_api_v1_resumes__resume_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete a resume version */
+        delete: operations["delete_resume_api_v1_resumes__resume_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update resume details */
+        patch: operations["update_resume_api_v1_resumes__resume_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version history */
+        get: operations["list_versions_api_v1_resumes__resume_id__versions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Extracted text
+         * @description Separate from the detail view because the text is large and most views
+         *     never show it.
+         */
+        get: operations["get_resume_text_api_v1_resumes__resume_id__text_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the file */
+        get: operations["download_resume_api_v1_resumes__resume_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How many applications use this
+         * @description Shown before deleting, so the consequence is visible first.
+         */
+        get: operations["get_resume_usage_api_v1_resumes__resume_id__usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/set-current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make this the current version */
+        post: operations["set_current_version_api_v1_resumes__resume_id__set_current_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -361,11 +518,8 @@ export interface components {
         };
         /**
          * ApplicationStatus
-         * @description Where an application currently sits.
-         *
-         *     Deliberately NOT a state machine: real job searches skip stages, go
-         *     backwards, and revive dead applications. Any transition is allowed; the
-         *     history table records what actually happened.
+         * @description Not a state machine — real job searches skip stages, go backwards and
+         *     revive dead applications. Any transition is allowed; history records it.
          * @enum {string}
          */
         ApplicationStatus: "wishlist" | "applied" | "assessment" | "phone_screen" | "technical_interview" | "hr_interview" | "final_interview" | "offer" | "accepted" | "rejected" | "withdrawn" | "on_hold";
@@ -438,6 +592,20 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Body_upload_resume_api_v1_resumes_post */
+        Body_upload_resume_api_v1_resumes_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+            /** Title */
+            title?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Replaces Id */
+            replaces_id?: string | null;
+        };
         /**
          * CareerLevel
          * @description `str` mixin so Pydantic serialises the value, not `CareerLevel.STUDENT`.
@@ -464,6 +632,16 @@ export interface components {
          * @enum {string}
          */
         EmploymentType: "full_time" | "part_time" | "contract" | "internship";
+        /**
+         * ExtractionStatus
+         * @description Outcome of pulling text out of an uploaded file.
+         *
+         *     EMPTY is separate from FAILED on purpose: a scanned resume parses fine and
+         *     yields nothing, and telling someone their file is unreadable is more useful
+         *     than showing a blank page.
+         * @enum {string}
+         */
+        ExtractionStatus: "pending" | "ok" | "empty" | "failed";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -546,6 +724,176 @@ export interface components {
              * @description IANA timezone from the browser, e.g. Asia/Kolkata
              */
             timezone?: string | null;
+        };
+        /** ResumeDetailResponse */
+        ResumeDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Family Id
+             * Format: uuid
+             */
+            family_id: string;
+            /** Version */
+            version: number;
+            /** Is Current */
+            is_current: boolean;
+            /** Title */
+            title: string;
+            /** Notes */
+            notes: string | null;
+            /** Original Filename */
+            original_filename: string;
+            /** Content Type */
+            content_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            extraction_status: components["schemas"]["ExtractionStatus"];
+            /** Extraction Error */
+            extraction_error: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Extracted Text */
+            extracted_text: string | null;
+            /**
+             * Versions
+             * @default []
+             */
+            versions: components["schemas"]["ResumeResponse"][];
+        };
+        /**
+         * ResumeResponse
+         * @description Deliberately without extracted_text — it runs to tens of thousands of
+         *     characters and no list view shows it.
+         */
+        ResumeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Family Id
+             * Format: uuid
+             */
+            family_id: string;
+            /** Version */
+            version: number;
+            /** Is Current */
+            is_current: boolean;
+            /** Title */
+            title: string;
+            /** Notes */
+            notes: string | null;
+            /** Original Filename */
+            original_filename: string;
+            /** Content Type */
+            content_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            extraction_status: components["schemas"]["ExtractionStatus"];
+            /** Extraction Error */
+            extraction_error: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ResumeTextResponse */
+        ResumeTextResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            extraction_status: components["schemas"]["ExtractionStatus"];
+            /** Extracted Text */
+            extracted_text: string | null;
+            /** Extraction Error */
+            extraction_error: string | null;
+        };
+        /**
+         * ResumeUpdate
+         * @description Only the metadata is editable. Replacing the file means a new version.
+         */
+        ResumeUpdate: {
+            /** Title */
+            title?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /**
+         * ResumeUploadResponse
+         * @description The stored resume, plus anything the user should know about it.
+         *
+         *     duplicate_of is a warning rather than a rejection — uploading the same file
+         *     under two titles is a reasonable thing to do, so the choice stays with the
+         *     user.
+         */
+        ResumeUploadResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Family Id
+             * Format: uuid
+             */
+            family_id: string;
+            /** Version */
+            version: number;
+            /** Is Current */
+            is_current: boolean;
+            /** Title */
+            title: string;
+            /** Notes */
+            notes: string | null;
+            /** Original Filename */
+            original_filename: string;
+            /** Content Type */
+            content_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            extraction_status: components["schemas"]["ExtractionStatus"];
+            /** Extraction Error */
+            extraction_error: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Duplicate Of Id */
+            duplicate_of_id?: string | null;
+            /** Duplicate Of Title */
+            duplicate_of_title?: string | null;
+        };
+        /** ResumeUsageResponse */
+        ResumeUsageResponse: {
+            /** Application Count */
+            application_count: number;
         };
         /** StatusHistoryEntry */
         StatusHistoryEntry: {
@@ -1004,6 +1352,329 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplicationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_upload_limits_api_v1_resumes_limits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    list_resumes_api_v1_resumes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeResponse"][];
+                };
+            };
+        };
+    };
+    upload_resume_api_v1_resumes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_resume_api_v1_resumes_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeUploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_resume_api_v1_resumes__resume_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_resume_api_v1_resumes__resume_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_resume_api_v1_resumes__resume_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResumeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_versions_api_v1_resumes__resume_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_resume_text_api_v1_resumes__resume_id__text_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeTextResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_resume_api_v1_resumes__resume_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_resume_usage_api_v1_resumes__resume_id__usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeUsageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_current_version_api_v1_resumes__resume_id__set_current_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeResponse"];
                 };
             };
             /** @description Validation Error */

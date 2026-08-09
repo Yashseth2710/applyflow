@@ -16,6 +16,8 @@ import {
   useChangeStatus,
   useDeleteApplication,
 } from "@/lib/applications";
+import { formatBytes } from "@/lib/resume-format";
+import { openResumeFile, useResume } from "@/lib/resumes";
 import type { ApplicationDetail, ApplicationStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -162,6 +164,8 @@ function Detail() {
             )}
           </section>
 
+          {data.resume_id && <LinkedResume resumeId={data.resume_id} />}
+
           {data.job_description && (
             <section className="rounded-xl border border-border bg-card p-5">
               <h2 className="text-sm font-medium text-muted-foreground">
@@ -255,6 +259,52 @@ function Detail() {
         </div>
       )}
     </main>
+  );
+}
+
+/** The resume that was actually sent. Fetched separately so the applications
+ *  endpoint stays a single query. */
+function LinkedResume({ resumeId }: { resumeId: string }) {
+  const { data: resume, isPending, isError } = useResume(resumeId);
+
+  if (isPending) {
+    return <Skeleton className="h-24 w-full rounded-xl" />;
+  }
+
+  // The link can outlive the file if the resume was deleted from another tab.
+  if (isError || !resume) return null;
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-5">
+      <h2 className="text-sm font-medium text-muted-foreground">Resume sent</h2>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <Link
+            href={`/resumes/${resume.id}`}
+            className="font-medium hover:text-primary hover:underline"
+          >
+            {resume.title}
+            {resume.version > 1 ? ` (v${resume.version})` : ""}
+          </Link>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">
+            {resume.original_filename} · {formatBytes(resume.size_bytes)}
+          </p>
+        </div>
+
+        <Button
+          variant="outline"
+          className="h-9 px-3"
+          onClick={() =>
+            void openResumeFile(resume.id, resume.original_filename).catch(() =>
+              toast.error("Couldn't open the file"),
+            )
+          }
+        >
+          Open
+        </Button>
+      </div>
+    </section>
   );
 }
 

@@ -38,3 +38,12 @@ export type EmploymentType = Schemas["EmploymentType"];
 export type BoardResponse = Schemas["BoardResponse"];
 export type BoardColumn = Schemas["BoardColumn"];
 export type ApplicationPage = Schemas["Page_ApplicationResponse_"];
+
+// ---- resumes ----
+export type Resume = Schemas["ResumeResponse"];
+export type ResumeDetail = Schemas["ResumeDetailResponse"];
+export type ResumeUpload = Schemas["ResumeUploadResponse"];
+export type ResumeUpdate = Schemas["ResumeUpdate"];
+export type ResumeText = Schemas["ResumeTextResponse"];
+export type ResumeUsage = Schemas["ResumeUsageResponse"];
+export type ExtractionStatus = Schemas["ExtractionStatus"];
