@@ -63,11 +63,42 @@ ruff, mypy, pytest, eslint, tsc and `next build` all pass locally and in CI.
 
 ### Next up — Milestone 3
 
-1. `Application` model + migration, with status enum and history table
-2. Repository scoped by `user_id` so ownership can't be forgotten at the endpoint
-3. CRUD endpoints, search, filters, sorting, pagination
-4. Kanban board with drag-and-drop, using the stage colour tokens
-5. Application detail page
+Planned in two halves so there's a review checkpoint mid-milestone.
+
+**Backend first**
+
+1. `Application` model + migration — company inline, status enum, work mode,
+   employment type, salary range, `source`, `position` for board ordering
+2. `application_status_history` — append-only, written on every stage change.
+   Current status alone cannot answer "where do I stall" or "what is my
+   interview conversion rate", and the journey is unrecoverable if not
+   recorded from the start
+3. Repository scoped by `user_id` at the data layer, so an endpoint cannot
+   forget the ownership filter
+4. CRUD + search, filters, sorting, pagination; `/applications/board` grouped
+   by status
+5. Tests, including that another user's record returns 404 rather than 403 —
+   403 would confirm the ID exists
+
+**Then frontend**
+
+6. Applications list with search and filters
+7. Kanban board with drag-and-drop, using the stage colour tokens
+8. Create/edit form and application detail page
+
+#### Decision: board shows 6 active columns, not 12
+
+Twelve stages at a usable column width is ~3,300px — horizontal scrolling on
+every screen, with terminal states occupying as much space as live ones.
+
+The board shows the stages you actively move through (Wishlist, Applied,
+Assessment, Interview, Final, Offer), with `phone_screen` / `technical` /
+`hr` grouped under Interview and expandable. Rejected, Withdrawn and On hold
+move to a collapsible "Closed" section — still one drag away, but not
+competing for prime space.
+
+The database keeps all twelve statuses. This is a presentation choice only,
+so analytics still see full granularity.
 
 ---
 
