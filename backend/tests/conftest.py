@@ -53,6 +53,38 @@ def unique_email() -> str:
     return f"test-{uuid.uuid4().hex[:12]}@example.com"
 
 
+def _register(client: TestClient, email: str) -> dict:
+    r = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "correct-horse-battery",
+            "first_name": "Test",
+            "last_name": "User",
+            "timezone": "Asia/Kolkata",
+        },
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    return {
+        "email": email,
+        "password": "correct-horse-battery",
+        "id": body["user"]["id"],
+        "access_token": body["token"]["access_token"],
+        "headers": {"Authorization": f"Bearer {body['token']['access_token']}"},
+    }
+
+
+@pytest.fixture
+def other_user(client: TestClient) -> dict:
+    """A second account, for proving one user cannot reach another's data."""
+    user = _register(client, f"other-{uuid.uuid4().hex[:12]}@example.com")
+    # Registering logs this client in as the second user; drop the cookies so
+    # the primary user's fixtures aren't affected by the switch.
+    client.cookies.clear()
+    return user
+
+
 @pytest.fixture
 def registered_user(client: TestClient, unique_email: str) -> dict:
     """A registered account plus its access token."""
