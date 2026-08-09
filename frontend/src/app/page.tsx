@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 import { LogoWordmark } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -30,11 +28,13 @@ const FEATURES = [
 
 export default function Home() {
   const { user, isLoading } = useAuth();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoading && user) router.replace("/dashboard");
-  }, [isLoading, user, router]);
+  // No redirect for signed-in visitors. The landing page is a page in its own
+  // right, and auto-navigating away from it the moment the session finishes
+  // restoring looks like a stray scroll or click threw you into the app.
+  // Signed-in users get a link to the dashboard instead, and choose for
+  // themselves.
+  const signedIn = !isLoading && !!user;
 
   return (
     <div className="min-h-svh bg-background">
@@ -44,18 +44,28 @@ export default function Home() {
 
           <div className="flex items-center gap-1.5">
             <ThemeToggle />
-            <Link
-              href="/login"
-              className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3.5")}
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className={cn(buttonVariants(), "h-9 px-3.5")}
-            >
-              Get started
-            </Link>
+            {/* While isLoading, neither set of buttons renders. Showing "Sign
+                in" to someone already signed in, then swapping it a second
+                later, is its own kind of wrong. */}
+            {isLoading ? (
+              <span className="h-9 w-40" aria-hidden />
+            ) : signedIn ? (
+              <Link href="/dashboard" className={cn(buttonVariants(), "h-9 px-3.5")}>
+                Go to dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3.5")}
+                >
+                  Sign in
+                </Link>
+                <Link href="/register" className={cn(buttonVariants(), "h-9 px-3.5")}>
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -77,22 +87,33 @@ export default function Home() {
             to thirty companies at once.
           </p>
 
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
-            <Link
-              href="/register"
-              className={cn(buttonVariants(), "h-11 px-6 text-[0.95rem]")}
-            >
-              Create your account
-            </Link>
-            <Link
-              href="/login"
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "h-11 px-6 text-[0.95rem]",
-              )}
-            >
-              I already have one
-            </Link>
+          <div className="mt-9 flex min-h-11 flex-wrap justify-center gap-3">
+            {isLoading ? null : signedIn ? (
+              <Link
+                href="/dashboard"
+                className={cn(buttonVariants(), "h-11 px-6 text-[0.95rem]")}
+              >
+                Open your dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/register"
+                  className={cn(buttonVariants(), "h-11 px-6 text-[0.95rem]")}
+                >
+                  Create your account
+                </Link>
+                <Link
+                  href="/login"
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "h-11 px-6 text-[0.95rem]",
+                  )}
+                >
+                  I already have one
+                </Link>
+              </>
+            )}
           </div>
         </section>
 
