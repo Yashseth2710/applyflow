@@ -141,13 +141,18 @@ POST   /ai/interview-questions    { application_id, types[] }
 `match_score` is ApplyFlow's own transparent skill-overlap metric. It is not an ATS
 score and is never described as one.
 
-### Analytics (planned)
+### Analytics
 ```
-GET    /analytics/overview        totals, active, offers, rejections
-GET    /analytics/conversion      application→interview→offer rates
-GET    /analytics/timeline        ?range=30d
-GET    /analytics/breakdown       ?by=status|source|work_mode|company
+GET    /analytics/summary         everything the analytics page draws
 ```
+
+One endpoint instead of the four originally sketched: the page renders all of it at
+once, and four round trips to a database that sleeps when idle means four cold
+starts instead of one.
+
+Rate fields (`response_rate`, `interview_rate`, `offer_rate`, per-step and per-source
+rates) are `null` until there are enough applications behind them — see decision 6 in
+`architecture.md`. Counts are always populated.
 
 ---
 

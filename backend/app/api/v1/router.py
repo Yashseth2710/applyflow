@@ -2,7 +2,15 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import ai, applications, auth, health, interviews, resumes
+from app.api.v1.endpoints import (
+    ai,
+    analytics,
+    applications,
+    auth,
+    health,
+    interviews,
+    resumes,
+)
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -11,3 +19,4 @@ api_router.include_router(applications.router, prefix="/applications", tags=["ap
 api_router.include_router(resumes.router, prefix="/resumes", tags=["resumes"])
 api_router.include_router(interviews.router, prefix="/interviews", tags=["interviews"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
+api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])

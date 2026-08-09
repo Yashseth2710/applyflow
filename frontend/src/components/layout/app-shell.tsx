@@ -13,6 +13,7 @@ const NAV = [
   { href: "/applications", label: "Applications" },
   { href: "/applications/board", label: "Board" },
   { href: "/resumes", label: "Resumes" },
+  { href: "/analytics", label: "Analytics" },
 ] as const;
 
 /** Chrome shared by every signed-in page: header, nav, auth guard. */

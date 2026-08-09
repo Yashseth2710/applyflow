@@ -68,3 +68,12 @@ export type JDAnalysis = Schemas["JDAnalysis"];
 export type ResumeMatch = Schemas["ResumeMatch"];
 export type InterviewPrep = Schemas["InterviewPrep"];
 export type InterviewQuestion = Schemas["InterviewQuestion"];
+
+// ---- analytics ----
+export type AnalyticsSummary = Schemas["AnalyticsSummary"];
+export type AnalyticsTotals = Schemas["Totals"];
+export type FunnelStep = Schemas["FunnelStep"];
+export type StatusCount = Schemas["StatusCount"];
+export type StageDuration = Schemas["StageDuration"];
+export type SourceStat = Schemas["SourceStat"];
+export type VolumePoint = Schemas["VolumePoint"];

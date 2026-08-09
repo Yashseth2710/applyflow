@@ -113,6 +113,22 @@ correctly re-render it for another zone, and DST breaks it.
 frontend needs honest loading states, and health checks need generous timeouts.
 Discovering this at deployment time would mean reworking finished features.
 
+### 6. Analytics withholds percentages until the numbers earn them
+
+Counts, timings and the weekly chart are shown from the first application. Rates are
+not: below five sent applications the backend returns `null` for every rate rather
+than a number, and the UI says so.
+
+**Why:** one offer out of two applications is a 50% offer rate. It is arithmetically
+correct and completely meaningless, and it is the number a new user sees first. A
+tool that reports it teaches people to trust figures that are noise. The threshold
+lives in the service, not the client, so every consumer of the API gets the same
+answer.
+
+The funnel is cumulative — reaching the offer stage counts towards every earlier
+rung — because people log the interview they got without ever ticking "assessment",
+and a funnel that widens further down looks broken.
+
 ---
 
 ## AI provider abstraction
@@ -120,11 +136,16 @@ Discovering this at deployment time would mean reworking finished features.
 ```
   API endpoint  →  AIService  →  AIProvider (interface)
                                     ├── MockProvider    deterministic fixtures
-                                    └── OllamaProvider  local llama3.2:3b
+                                    ├── OllamaProvider  local llama3.2:3b
+                                    └── GeminiProvider  hosted, free tier
 ```
 
 Every provider returns validated Pydantic models, never raw strings. Selected by
 `AI_PROVIDER` env var; adding a hosted provider means one new class.
+
+Ollama is a local-development option only — it needs 2–4 GB of RAM and the free host
+gives 512 MB, so the deployed site runs Gemini. Tests pin the mock through dependency
+injection rather than config, so no test run can reach a live API or spend quota.
 
 **Local model reality (llama3.2:3b, CPU, benchmarked):** ~17.5 tok/s generation,
 ~66 tok/s prompt processing, reliable JSON via schema-constrained output. Extraction

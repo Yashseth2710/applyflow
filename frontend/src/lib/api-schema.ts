@@ -505,6 +505,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Job search statistics
+         * @description Everything the analytics page shows, in one request.
+         *
+         *     One endpoint rather than several: the page draws all of it at once, and
+         *     six round trips to a database that sleeps when idle would mean six cold
+         *     starts instead of one.
+         */
+        get: operations["summary_api_v1_analytics_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -575,6 +599,29 @@ export interface components {
          * @enum {string}
          */
         AITask: "jd_analysis" | "resume_match" | "cover_letter" | "interview_questions";
+        /** AnalyticsSummary */
+        AnalyticsSummary: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Min Sample */
+            min_sample: number;
+            /** Has Enough Data */
+            has_enough_data: boolean;
+            totals: components["schemas"]["Totals"];
+            /** Funnel */
+            funnel: components["schemas"]["FunnelStep"][];
+            /** Statuses */
+            statuses: components["schemas"]["StatusCount"][];
+            /** Stage Durations */
+            stage_durations: components["schemas"]["StageDuration"][];
+            /** Sources */
+            sources: components["schemas"]["SourceStat"][];
+            /** Volume */
+            volume: components["schemas"]["VolumePoint"][];
+        };
         /** ApplicationCreate */
         ApplicationCreate: {
             /** Company Name */
@@ -844,6 +891,24 @@ export interface components {
          * @enum {string}
          */
         ExtractionStatus: "pending" | "ok" | "empty" | "failed";
+        /**
+         * FunnelStep
+         * @description One rung of the pipeline, counted as "ever reached, not still here".
+         *
+         *     An application that was rejected after a final round still counts towards
+         *     every earlier step — otherwise the funnel would only describe applications
+         *     that are currently in flight, which is the least interesting group.
+         */
+        FunnelStep: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Count */
+            count: number;
+            /** Rate */
+            rate: number | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1405,6 +1470,53 @@ export interface components {
             /** Application Count */
             application_count: number;
         };
+        /**
+         * SourceStat
+         * @description Per job board / referral / careers page.
+         *
+         *     Sources are grouped exactly as typed. Folding "LinkedIn" into "linkedin"
+         *     means guessing, and a wrong guess quietly merges two real answers.
+         */
+        SourceStat: {
+            /** Source */
+            source: string | null;
+            /** Total */
+            total: number;
+            /** Sent */
+            sent: number;
+            /** Interviews */
+            interviews: number;
+            /** Offers */
+            offers: number;
+            /** Interview Rate */
+            interview_rate: number | null;
+        };
+        /**
+         * StageDuration
+         * @description How long applications sit in a stage before moving on.
+         *
+         *     Only completed stays count. An application still sitting in a stage has no
+         *     end date, and treating "so far" as "took" would drag every average down.
+         */
+        StageDuration: {
+            status: components["schemas"]["ApplicationStatus"];
+            /** Average Days */
+            average_days: number;
+            /** Median Days */
+            median_days: number;
+            /** Moves */
+            moves: number;
+        };
+        /**
+         * StatusCount
+         * @description Where things stand right now. No label — the client already owns the
+         *     wording and the colour for each status.
+         */
+        StatusCount: {
+            status: components["schemas"]["ApplicationStatus"];
+            /** Count */
+            count: number;
+        };
         /** StatusHistoryEntry */
         StatusHistoryEntry: {
             from_status: components["schemas"]["ApplicationStatus"] | null;
@@ -1433,6 +1545,34 @@ export interface components {
              * @description Access token lifetime in seconds
              */
             expires_in: number;
+        };
+        /**
+         * Totals
+         * @description The headline numbers, and the rates that only appear once earned.
+         */
+        Totals: {
+            /** Applications */
+            applications: number;
+            /** Active */
+            active: number;
+            /** Closed */
+            closed: number;
+            /** Applied */
+            applied: number;
+            /** Interviews Scheduled */
+            interviews_scheduled: number;
+            /** Offers */
+            offers: number;
+            /** Response Rate */
+            response_rate: number | null;
+            /** Interview Rate */
+            interview_rate: number | null;
+            /** Offer Rate */
+            offer_rate: number | null;
+            /** Median Days To Response */
+            median_days_to_response: number | null;
+            /** Response Samples */
+            response_samples: number;
         };
         /** UserResponse */
         UserResponse: {
@@ -1464,6 +1604,21 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * VolumePoint
+         * @description One week of activity.
+         */
+        VolumePoint: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /** Created */
+            created: number;
+            /** Moved */
+            moved: number;
         };
         /**
          * WorkMode
@@ -2490,6 +2645,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    summary_api_v1_analytics_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsSummary"];
                 };
             };
         };
