@@ -110,6 +110,12 @@
 }
 
 :root {
+  /* Tells the browser to render native controls — <select> popups, scrollbars,
+     date pickers, autofill — in the matching scheme. Without it a native
+     dropdown keeps its white popup in dark mode and the inherited light text
+     becomes unreadable. */
+  color-scheme: light;
+
   /* Neutrals carry a trace of violet chroma rather than being dead grey.
      Barely perceptible alone; collectively it stops the UI feeling washed out. */
   --background: oklch(0.995 0.003 300);
@@ -203,6 +209,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   /* Not pure black — a deep desaturated violet. Reads intentional, and lets
      coloured elements glow against it instead of vibrating. */
   --background: oklch(0.172 0.016 288);

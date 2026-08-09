@@ -1,8 +1,7 @@
-"""Enums shared across models.
+"""Shared enums.
 
-These become native PostgreSQL enum types via Alembic. Adding a value later
-requires a migration (ALTER TYPE ... ADD VALUE), which is a deliberate
-trade-off: the database rejects invalid states rather than trusting the app.
+These become native Postgres enum types, so adding a value needs a migration.
+Worth it — the database rejects invalid states instead of trusting the app.
 """
 
 import enum
@@ -19,12 +18,8 @@ class CareerLevel(str, enum.Enum):
 
 
 class ApplicationStatus(str, enum.Enum):
-    """Where an application currently sits.
-
-    Deliberately NOT a state machine: real job searches skip stages, go
-    backwards, and revive dead applications. Any transition is allowed; the
-    history table records what actually happened.
-    """
+    """Not a state machine — real job searches skip stages, go backwards and
+    revive dead applications. Any transition is allowed; history records it."""
 
     WISHLIST = "wishlist"
     APPLIED = "applied"
@@ -41,9 +36,7 @@ class ApplicationStatus(str, enum.Enum):
     ON_HOLD = "on_hold"
 
 
-#: Statuses an application has left, i.e. no longer being actively pursued.
-#: The board groups these into a collapsed "Closed" section rather than giving
-#: each its own column. See docs/roadmap.md.
+#: No longer being actively pursued. The board collapses these into "Closed".
 CLOSED_STATUSES: frozenset[ApplicationStatus] = frozenset(
     {
         ApplicationStatus.REJECTED,
@@ -52,7 +45,7 @@ CLOSED_STATUSES: frozenset[ApplicationStatus] = frozenset(
     }
 )
 
-#: Statuses that mean an interview happened. Used by the analytics milestone to
+#: Statuses that mean an interview happened. Used by analytics to
 #: compute application -> interview conversion.
 INTERVIEW_STATUSES: frozenset[ApplicationStatus] = frozenset(
     {

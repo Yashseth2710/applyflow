@@ -9,10 +9,8 @@ from app.core.config import settings
 
 engine = create_engine(
     settings.sqlalchemy_url,
-    # Neon's free tier scales compute to zero after ~5 minutes idle, which kills
-    # pooled connections. pool_pre_ping validates a connection before handing it
-    # out and transparently replaces dead ones; without it, wake-ups surface as
-    # intermittent "server closed the connection unexpectedly" errors.
+    # Neon scales to zero after ~5 min idle, which kills pooled connections.
+    # Without pre_ping you get intermittent "server closed the connection".
     pool_pre_ping=True,
     pool_recycle=300,
     pool_size=5,

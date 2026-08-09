@@ -10,9 +10,7 @@ from argon2.exceptions import InvalidHashError, VerifyMismatchError
 
 from app.core.config import settings
 
-# Argon2id — the current password-hashing recommendation. Defaults are the
-# RFC 9106 low-memory profile, which is appropriate for a web request path.
-_hasher = PasswordHasher()
+_hasher = PasswordHasher()  # Argon2id, RFC 9106 low-memory defaults
 
 TokenType = Literal["access", "refresh"]
 
@@ -22,8 +20,7 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    """False on mismatch rather than raising, so callers can't leak *why*
-    authentication failed."""
+    """False rather than raising, so callers can't leak why auth failed."""
     try:
         _hasher.verify(password_hash, password)
         return True
@@ -32,8 +29,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def needs_rehash(password_hash: str) -> bool:
-    """True when the hash used weaker parameters than the current config,
-    letting us upgrade hashes transparently on successful login."""
+    """True if the hash used weaker parameters than the current config."""
     try:
         return _hasher.check_needs_rehash(password_hash)
     except (InvalidHashError, ValueError):
@@ -47,8 +43,7 @@ def _create_token(subject: str, token_type: TokenType, expires: timedelta) -> st
         "type": token_type,
         "iat": now,
         "exp": now + expires,
-        # Unique id per token, so refresh tokens can be revoked individually
-        # once a denylist exists.
+        # Per-token id, so refresh tokens can be revoked individually later.
         "jti": str(uuid.uuid4()),
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
@@ -69,8 +64,8 @@ class TokenError(Exception):
 def decode_token(token: str, expected_type: TokenType) -> str:
     """Return the subject (user id) or raise TokenError.
 
-    `expected_type` is enforced: without it, a refresh token would be accepted
-    as an access token, defeating the short access-token lifetime entirely.
+    expected_type is enforced — otherwise a refresh token works as an access
+    token and the short access lifetime means nothing.
     """
     try:
         payload = jwt.decode(

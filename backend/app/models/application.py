@@ -40,9 +40,8 @@ class Application(Base, UUIDMixin, TimestampMixin):
         index=True,
     )
 
-    # Company is stored inline rather than in a shared table. A shared table
-    # needs deduplication ("Google" vs "Google India" vs "google") and getting
-    # that wrong corrupts every user's data. See docs/architecture.md ADR 1.
+    # Inline rather than a shared companies table: dedup ("Google" vs "Google
+    # India" vs "google") is easy to get wrong and corrupts everyone's data.
     company_name: Mapped[str] = mapped_column(String(200), nullable=False)
     company_website: Mapped[str | None] = mapped_column(Text)
 
@@ -66,9 +65,7 @@ class Application(Base, UUIDMixin, TimestampMixin):
         default=ApplicationStatus.WISHLIST,
     )
 
-    # Where the job came from (LinkedIn, referral, careers page...). Free text
-    # rather than an enum: this is the analytics dimension that answers "what is
-    # actually working", and a fixed list would force users to pick "other".
+    # Free text, not an enum — a fixed list just makes people pick "other".
     source: Mapped[str | None] = mapped_column(String(100))
 
     # SET NULL, not CASCADE: deleting a resume must not delete the history of
@@ -107,10 +104,8 @@ class Application(Base, UUIDMixin, TimestampMixin):
 class ApplicationStatusHistory(Base, UUIDMixin):
     """Append-only log of status changes.
 
-    Current status alone cannot answer "what is my interview conversion rate"
-    or "where do applications stall" — those need the journey. The data is
-    unrecoverable if not captured as it happens, so it is written from the
-    first milestone that has statuses rather than when analytics is built.
+    Conversion rates and time-in-stage need the journey, not just the current
+    status, and it can't be reconstructed later — so record it from the start.
     """
 
     __tablename__ = "application_status_history"
@@ -121,9 +116,7 @@ class ApplicationStatusHistory(Base, UUIDMixin):
         nullable=False,
         index=True,
     )
-    # Denormalised from applications. Makes "all of this user's transitions"
-    # a single indexed scan instead of a join, and keeps ownership checks
-    # uniform across every table.
+    # Denormalised so ownership checks are one indexed predicate, not a join.
     user_id: Mapped[uuid.UUID] = mapped_column(
         PGUUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),

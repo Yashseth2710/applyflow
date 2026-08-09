@@ -10,8 +10,7 @@ from app.core.database import get_db
 from app.core.security import TokenError, decode_token
 from app.models.user import User
 
-# auto_error=False so a missing header produces our own 401 with a consistent
-# body, rather than FastAPI's differently-shaped error.
+# auto_error=False so a missing header gives our own 401 shape, not FastAPI's.
 _bearer = HTTPBearer(auto_error=False)
 
 _CREDENTIALS_ERROR = HTTPException(
@@ -27,8 +26,8 @@ def get_current_user(
 ) -> User:
     """Resolve the caller from the bearer token.
 
-    Every failure returns the same 401 message. Distinguishing "no such user"
-    from "bad token" would let an attacker probe which accounts exist.
+    Same 401 for every failure — separating "no such user" from "bad token"
+    lets someone probe which accounts exist.
     """
     if credentials is None or not credentials.credentials:
         raise _CREDENTIALS_ERROR

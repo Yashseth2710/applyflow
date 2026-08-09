@@ -4,7 +4,7 @@ AI-powered job application management platform. Track every application, resume,
 interview, and reminder in one place — and use AI to analyse job descriptions,
 improve resume relevance, and prepare for interviews.
 
-> **Status:** Milestone 1 — Foundation. See [docs/roadmap.md](docs/roadmap.md).
+Work in progress. Applications, resumes, interviews and analytics are being built out in that order.
 
 ---
 
@@ -124,7 +124,7 @@ applyflow/
 - [Architecture](docs/architecture.md) — system design and key decisions
 - [Database schema](docs/database-schema.md) — tables and relationships
 - [API specification](docs/api-spec.md) — endpoints
-- [Roadmap](docs/roadmap.md) — milestones and progress
+
 
 ---
 

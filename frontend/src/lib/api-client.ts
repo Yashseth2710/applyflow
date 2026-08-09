@@ -1,14 +1,6 @@
-/**
- * Typed fetch wrapper for the ApplyFlow API.
- *
- * Handles two things beyond plain fetch:
- *  - attaches the in-memory access token
- *  - on a 401, silently refreshes once and replays the request, so a 15-minute
- *    access token expiring mid-session is invisible to the user
- *
- * `credentials: "include"` is required throughout: the refresh token is an
- * httpOnly cookie and the browser only sends it when asked to.
- */
+// Fetch wrapper: attaches the access token, and on a 401 refreshes once and
+// replays the request so an expiring token is invisible to the user.
+// credentials: "include" throughout, because the refresh token is a cookie.
 
 import { clearAccessToken, getAccessToken, setAccessToken } from "./auth-token";
 

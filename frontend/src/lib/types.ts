@@ -1,68 +1,40 @@
 /**
- * API response types.
+ * Application-facing types.
  *
- * From Milestone 3 these are generated from the backend's OpenAPI schema
- * (docs/architecture.md decision 3). Hand-written for now while the surface
- * is small.
+ * These alias the generated OpenAPI schema rather than restating it — see
+ * docs/architecture.md decision 3. Hand-written duplicates drift silently; a
+ * renamed backend field should break the build, not fail at runtime.
+ *
+ * Regenerate after changing any backend schema:
+ *     npm run gen:api      (backend must be running)
  */
 
-export interface DatabaseHealth {
-  connected: boolean;
-  latency_ms: number | null;
-  error: string | null;
-}
+import type { components } from "./api-schema";
 
-export interface HealthResponse {
-  status: "ok" | "degraded";
-  version: string;
-  environment: string;
-  database: DatabaseHealth;
-}
+type Schemas = components["schemas"];
 
-export type CareerLevel = "student" | "entry" | "mid" | "senior" | "lead";
+// ---- auth ----
+export type User = Schemas["UserResponse"];
+export type Profile = Schemas["ProfileResponse"];
+export type TokenResponse = Schemas["TokenResponse"];
+export type AuthResponse = Schemas["AuthResponse"];
+export type RegisterPayload = Schemas["RegisterRequest"];
+export type LoginPayload = Schemas["LoginRequest"];
+export type CareerLevel = Schemas["CareerLevel"];
 
-export interface Profile {
-  timezone: string;
-  phone: string | null;
-  location: string | null;
-  linkedin_url: string | null;
-  github_url: string | null;
-  portfolio_url: string | null;
-  career_level: CareerLevel | null;
-  years_experience: number | null;
-  summary: string | null;
-}
+// ---- health ----
+export type HealthResponse = Schemas["HealthResponse"];
+export type DatabaseHealth = Schemas["DatabaseHealth"];
 
-export interface User {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  is_active: boolean;
-  created_at: string;
-  profile: Profile | null;
-}
-
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: TokenResponse;
-}
-
-export interface RegisterPayload {
-  email: string;
-  password: string;
-  first_name: string;
-  last_name: string;
-  timezone?: string;
-}
-
-export interface LoginPayload {
-  email: string;
-  password: string;
-}
+// ---- applications ----
+export type Application = Schemas["ApplicationResponse"];
+export type ApplicationDetail = Schemas["ApplicationDetailResponse"];
+export type ApplicationCreate = Schemas["ApplicationCreate"];
+export type ApplicationUpdate = Schemas["ApplicationUpdate"];
+export type ApplicationStatus = Schemas["ApplicationStatus"];
+export type StatusHistoryEntry = Schemas["StatusHistoryEntry"];
+export type WorkMode = Schemas["WorkMode"];
+export type EmploymentType = Schemas["EmploymentType"];
+export type BoardResponse = Schemas["BoardResponse"];
+export type BoardColumn = Schemas["BoardColumn"];
+export type ApplicationPage = Schemas["Page_ApplicationResponse_"];

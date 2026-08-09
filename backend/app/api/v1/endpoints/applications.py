@@ -26,14 +26,12 @@ from app.services.application import ApplicationNotFound, ApplicationService
 
 router = APIRouter()
 
-# Returned for both "no such application" and "belongs to another user".
-# A 403 on the latter would confirm the id exists — see docs/api-spec.md.
+# Same response whether it doesn't exist or belongs to someone else. A 403
+# would confirm the id exists.
 _NOT_FOUND = HTTPException(
     status_code=http_status.HTTP_404_NOT_FOUND, detail="Application not found"
 )
 
-#: Column order for the board. Terminal statuses are excluded — they are
-#: returned separately so the UI can collapse them. See docs/roadmap.md.
 BOARD_COLUMN_ORDER: list[ApplicationStatus] = [
     ApplicationStatus.WISHLIST,
     ApplicationStatus.APPLIED,
@@ -88,11 +86,8 @@ def get_board(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> BoardResponse:
-    """Grouped in one query rather than one request per column.
-
-    Every status is returned, including terminal ones — the frontend decides
-    which to show as columns and which to collapse.
-    """
+    """One query, not one per column. Returns every status; the frontend
+    decides which get columns and which collapse."""
     applications = ApplicationService(db).board(current_user.id)
 
     grouped: dict[ApplicationStatus, list[ApplicationResponse]] = {
@@ -115,7 +110,7 @@ def list_sources(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[str]:
-    """Powers the source filter dropdown without a fixed enum."""
+    """Feeds the source filter without needing a fixed enum."""
     return ApplicationService(db).sources(current_user.id)
 
 

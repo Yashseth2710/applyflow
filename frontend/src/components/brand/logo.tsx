@@ -2,18 +2,9 @@
 
 import { useId } from "react";
 
-/**
- * ApplyFlow brand mark — an "A" with a rising arrow sweeping through it.
- *
- * Two variants, because one colouring cannot serve every surface:
- *  - "gradient" (default): violet gradient, for light and dark backgrounds
- *  - "mono": `currentColor`, for the violet brand panel where a violet
- *    gradient would be invisible
- *
- * Gradient IDs are generated per instance with `useId`. Hardcoded IDs collide
- * when the component renders more than once on a page, and the second instance
- * silently inherits the first one's gradient.
- */
+// "mono" is for the violet brand panel, where the gradient would be invisible.
+// Gradient IDs are per-instance: hardcoded ones collide when the logo renders
+// twice and the second inherits the first's gradient.
 
 const A_PATH = "M8 40 L20 10 L32 40";
 const ARROW_PATH = "M8.5 31 C17 41, 31 37, 40 18";

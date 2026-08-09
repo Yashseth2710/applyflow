@@ -9,5 +9,5 @@ api_router.include_router(health.router)
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(applications.router, prefix="/applications", tags=["applications"])
 
-# Milestone 4+ routers register here:
+# Future routers register here:
 # api_router.include_router(resumes.router, prefix="/resumes", tags=["resumes"])

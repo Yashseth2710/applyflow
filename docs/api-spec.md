@@ -70,7 +70,7 @@ The probe runs a real `SELECT 1`.
 
 ## Planned surface
 
-### Auth — Milestone 2
+### Auth
 ```
 POST   /auth/register        create account, return tokens
 POST   /auth/login           email + password
@@ -79,7 +79,7 @@ POST   /auth/logout          clear the refresh cookie
 GET    /auth/me              current user
 ```
 
-### Users — Milestone 2
+### Users
 ```
 GET    /users/me/profile
 PATCH  /users/me/profile
@@ -89,7 +89,7 @@ DELETE /users/me/skills/{id}
 DELETE /users/me                 delete account and all data
 ```
 
-### Applications — Milestone 3
+### Applications
 ```
 GET    /applications             ?status= &search= &source= &work_mode= &sort= &page=
 POST   /applications
@@ -100,7 +100,7 @@ PATCH  /applications/{id}/status  status change + history entry
 GET    /applications/board        grouped by status, for the Kanban view
 ```
 
-### Resumes — Milestone 4
+### Resumes (planned)
 ```
 GET    /resumes
 POST   /resumes                   multipart, PDF only, size-capped
@@ -109,7 +109,7 @@ GET    /resumes/{id}/download     short-lived signed access
 DELETE /resumes/{id}
 ```
 
-### Interviews & reminders — Milestone 5
+### Interviews and reminders (planned)
 ```
 GET    /interviews                ?upcoming=true
 POST   /interviews
@@ -125,7 +125,7 @@ GET    /applications/{id}/notes
 POST   /applications/{id}/notes
 ```
 
-### AI — Milestone 6
+### AI (planned)
 
 Rate limited. Every response is a validated schema, never raw model text.
 `provider` and `model` are echoed back so output is traceable.
@@ -141,7 +141,7 @@ POST   /ai/interview-questions    { application_id, types[] }
 `match_score` is ApplyFlow's own transparent skill-overlap metric. It is not an ATS
 score and is never described as one.
 
-### Analytics — Milestone 7
+### Analytics (planned)
 ```
 GET    /analytics/overview        totals, active, offers, rejections
 GET    /analytics/conversion      application→interview→offer rates

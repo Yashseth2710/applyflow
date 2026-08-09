@@ -1,7 +1,4 @@
-"""Application business logic.
-
-Knows nothing about HTTP; raises domain errors the API layer maps to statuses.
-"""
+"""Application business logic. No HTTP here — the API layer maps these errors."""
 
 import uuid
 from datetime import UTC, datetime
@@ -20,10 +17,9 @@ from app.schemas.application import (
 
 
 class ApplicationNotFound(Exception):
-    """Raised when the application does not exist *or* belongs to someone else.
+    """Doesn't exist, or belongs to someone else.
 
-    Deliberately one error for both. Distinguishing them would confirm that an
-    id exists, letting an attacker enumerate other users' records.
+    One error for both — telling them apart would confirm an id exists.
     """
 
 
@@ -47,9 +43,8 @@ class ApplicationService:
             **data,
         )
 
-        # Moving straight to "applied" without a date is the common case — the
-        # user is recording something they just did. Stamping it here means the
-        # analytics milestone isn't full of nulls.
+        # Usually someone is logging something they just did, so fill the date
+        # in rather than leaving analytics full of nulls.
         if application.date_applied is None and status in _SUBMITTED:
             application.date_applied = datetime.now(UTC)
 
@@ -104,8 +99,7 @@ class ApplicationService:
         if application is None:
             raise ApplicationNotFound
 
-        # exclude_unset so PATCH only touches supplied fields. Without it,
-        # every omitted field would be overwritten with None.
+        # exclude_unset, or every omitted field gets overwritten with None.
         for field, value in payload.model_dump(exclude_unset=True).items():
             setattr(application, field, value)
 
@@ -134,8 +128,8 @@ class ApplicationService:
         if application.date_applied is None and status in _SUBMITTED:
             application.date_applied = datetime.now(UTC)
 
-        # Only log real transitions. A drag that lands a card back in its own
-        # column would otherwise pollute the history and skew time-in-stage.
+        # Only log real transitions — a card dropped back in its own column
+        # isn't one, and logging it skews time-in-stage.
         if previous != status:
             self.repo.record_status_change(application, from_status=previous, to_status=status)
 

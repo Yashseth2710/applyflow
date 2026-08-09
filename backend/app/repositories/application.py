@@ -1,8 +1,7 @@
 """Data access for applications.
 
-Every method takes `user_id` and filters on it. There is deliberately no
-"get by id" that skips the owner check — an endpoint cannot forget a filter
-this layer will not let it omit.
+Every method takes user_id and filters on it. There's no unscoped get-by-id,
+so an endpoint can't forget the owner check.
 """
 
 import uuid
@@ -70,9 +69,8 @@ class ApplicationRepository:
         if work_mode:
             stmt = stmt.where(Application.work_mode == work_mode)
         if search:
-            # ILIKE rather than full-text search: users type partial company
-            # names ("goog"), which to_tsquery would not match. The dataset is
-            # per-user and small, so the index trade-off does not bite.
+            # ILIKE, not full-text: people type partial names ("goog") that
+            # to_tsquery won't match, and per-user data is small enough.
             pattern = f"%{search.strip()}%"
             stmt = stmt.where(
                 or_(
@@ -83,9 +81,8 @@ class ApplicationRepository:
             )
         return stmt
 
-    # Not named `list`: a method called `list` shadows the builtin inside the
-    # class body, so any later `-> list[X]` annotation resolves to the method
-    # and raises "'function' object is not subscriptable" at import time.
+    # Not `list` — that shadows the builtin inside the class body and breaks
+    # every later `-> list[X]` annotation.
     def paginate(
         self,
         user_id: uuid.UUID,
@@ -126,11 +123,7 @@ class ApplicationRepository:
         return list(rows), total
 
     def list_for_board(self, user_id: uuid.UUID) -> list[Application]:
-        """Every application, ordered for the Kanban board.
-
-        Unpaginated on purpose: a board with a page 2 is not a board. The realistic
-        ceiling is a few hundred rows per user, which is a trivial query.
-        """
+        """Unpaginated on purpose — a board with a page 2 isn't a board."""
         return list(
             self.db.execute(
                 self._filtered(user_id).order_by(
