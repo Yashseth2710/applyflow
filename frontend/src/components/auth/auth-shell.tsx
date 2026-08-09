@@ -1,6 +1,7 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
-import { Logo } from "@/components/brand/logo";
+import { LogoWordmark } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 /**
  * Two-column shell for the login and register pages.
@@ -22,30 +23,27 @@ export function AuthShell({
   return (
     <div className="grid min-h-svh lg:grid-cols-[1.1fr_1fr]">
       {/* Brand panel */}
-      <aside className="relative hidden overflow-hidden bg-primary lg:flex lg:flex-col lg:justify-between lg:p-12">
+      <aside className="relative hidden overflow-hidden bg-brand-panel lg:flex lg:flex-col lg:justify-between lg:p-12">
         {/* Soft radial washes: depth without a literal gradient banner. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-70"
           style={{
             background:
-              "radial-gradient(60% 55% at 15% 10%, oklch(0.72 0.13 178 / 0.55), transparent 70%), radial-gradient(50% 50% at 90% 90%, oklch(0.45 0.12 205 / 0.6), transparent 70%)",
+              "radial-gradient(60% 55% at 15% 10%, oklch(0.66 0.21 315 / 0.55), transparent 70%), radial-gradient(50% 50% at 90% 90%, oklch(0.40 0.18 275 / 0.65), transparent 70%)",
           }}
         />
 
-        <Link
-          href="/"
-          className="relative z-10 inline-flex items-center gap-2.5 text-primary-foreground"
-        >
-          <Logo />
-          <span className="text-lg font-semibold tracking-tight">ApplyFlow</span>
+        <Link href="/" className="relative z-10 text-brand-panel-foreground">
+          {/* mono: a violet gradient would vanish against the violet panel */}
+          <LogoWordmark variant="mono" className="text-lg" />
         </Link>
 
         <div className="relative z-10 max-w-md">
-          <h2 className="text-3xl font-semibold leading-tight text-primary-foreground">
+          <h2 className="text-3xl font-semibold leading-tight text-brand-panel-foreground">
             Every application, resume and interview in one place.
           </h2>
-          <p className="mt-4 text-primary-foreground/80">
+          <p className="mt-4 text-brand-panel-foreground/80">
             Stop tracking your job search across six spreadsheets and a
             half-remembered inbox.
           </p>
@@ -58,7 +56,7 @@ export function AuthShell({
             ].map((item) => (
               <li
                 key={item}
-                className="flex items-start gap-3 text-sm text-primary-foreground/90"
+                className="flex items-start gap-3 text-sm text-brand-panel-foreground/90"
               >
                 <CheckMark />
                 {item}
@@ -67,22 +65,20 @@ export function AuthShell({
           </ul>
         </div>
 
-        <p className="relative z-10 text-xs text-primary-foreground/60">
+        <p className="relative z-10 text-xs text-brand-panel-foreground/75">
           Your data stays yours. Resumes are never shared or made public.
         </p>
       </aside>
 
       {/* Form panel */}
-      <main className="flex items-center justify-center bg-background px-6 py-12">
+      <main className="relative flex items-center justify-center bg-background px-6 py-12">
+        <div className="absolute right-5 top-5">
+          <ThemeToggle />
+        </div>
+
         <div className="w-full max-w-sm">
-          <Link
-            href="/"
-            className="mb-8 inline-flex items-center gap-2 text-foreground lg:hidden"
-          >
-            <span className="text-primary">
-              <Logo />
-            </span>
-            <span className="text-lg font-semibold tracking-tight">ApplyFlow</span>
+          <Link href="/" className="mb-8 block text-foreground lg:hidden">
+            <LogoWordmark className="text-lg" />
           </Link>
 
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>

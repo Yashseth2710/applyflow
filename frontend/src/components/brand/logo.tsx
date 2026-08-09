@@ -1,67 +1,125 @@
+"use client";
+
+import { useId } from "react";
+
 /**
- * ApplyFlow brand mark.
+ * ApplyFlow brand mark — an "A" with a rising arrow sweeping through it.
  *
- * Three ascending bars with a rising path through them: applications moving
- * forward through pipeline stages. Monochrome via `currentColor`, so the same
- * component works on the light background, on the teal brand panel, and in
- * dark mode — the parent sets the colour.
+ * Two variants, because one colouring cannot serve every surface:
+ *  - "gradient" (default): violet gradient, for light and dark backgrounds
+ *  - "mono": `currentColor`, for the violet brand panel where a violet
+ *    gradient would be invisible
  *
- * Depth comes from opacity rather than extra hues, which keeps it legible at
- * favicon size where a multi-colour mark would turn to mush.
+ * Gradient IDs are generated per instance with `useId`. Hardcoded IDs collide
+ * when the component renders more than once on a page, and the second instance
+ * silently inherits the first one's gradient.
  */
+
+const A_PATH = "M8 40 L20 10 L32 40";
+const ARROW_PATH = "M8.5 31 C17 41, 31 37, 40 18";
+const ARROWHEAD_PATH = "M44.4 9.4 L45.6 19.2 L36.2 14.6 Z";
 
 export function Logo({
   size = 26,
+  variant = "gradient",
   className,
 }: {
   size?: number;
+  variant?: "gradient" | "mono";
   className?: string;
 }) {
+  // useId returns something like ":r0:". Colons are legal in HTML ids but are
+  // parsed as a pseudo-class inside CSS/SVG `url(#...)` references, which
+  // breaks the gradient in some browsers. Strip them.
+  const id = useId().replace(/:/g, "");
+  const aId = `a-${id}`;
+  const arrowId = `arrow-${id}`;
+
+  const aStroke = variant === "mono" ? "currentColor" : `url(#${aId})`;
+  const arrowStroke = variant === "mono" ? "currentColor" : `url(#${arrowId})`;
+
   return (
     <svg
       width={size}
-      height={size}
-      viewBox="0 0 32 32"
+      // viewBox is 50x48, so height is scaled to keep the mark from squashing.
+      height={Math.round(size * (48 / 50))}
+      viewBox="0 0 50 48"
       fill="none"
       aria-hidden
       className={className}
     >
-      {/* Tile */}
-      <rect width="32" height="32" rx="9" fill="currentColor" opacity="0.14" />
+      {variant === "gradient" && (
+        <defs>
+          <linearGradient
+            id={aId}
+            x1="6"
+            y1="6"
+            x2="34"
+            y2="44"
+            gradientUnits="userSpaceOnUse"
+          >
+            {/* Token-driven so the mark brightens in dark mode; the
+                light-mode indigo end vanishes against a dark ground. */}
+            <stop stopColor="var(--logo-a-from)" />
+            <stop offset="0.5" stopColor="var(--logo-a-mid)" />
+            <stop offset="1" stopColor="var(--logo-a-to)" />
+          </linearGradient>
+          <linearGradient
+            id={arrowId}
+            x1="8"
+            y1="34"
+            x2="46"
+            y2="10"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop stopColor="var(--logo-arrow-from)" />
+            <stop offset="0.5" stopColor="var(--logo-arrow-mid)" />
+            <stop offset="1" stopColor="var(--logo-arrow-to)" />
+          </linearGradient>
+        </defs>
+      )}
 
-      {/* Pipeline bars, ascending left to right. Opacity implies progression:
-          early stages sit back, the final stage is solid. */}
-      <rect x="7" y="19" width="4" height="7" rx="2" fill="currentColor" opacity="0.45" />
-      <rect x="14" y="15" width="4" height="11" rx="2" fill="currentColor" opacity="0.7" />
-      <rect x="21" y="9" width="4" height="17" rx="2" fill="currentColor" />
-
-      {/* Rising path across the bars — the "flow". */}
       <path
-        d="M7.5 14.5 15 10l3.2 2.6L25.5 6"
-        stroke="currentColor"
-        strokeWidth="2.1"
+        d={A_PATH}
+        stroke={aStroke}
+        strokeWidth="7.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity="0.9"
+        opacity={variant === "mono" ? 0.9 : 1}
       />
-      {/* Endpoint dot: the offer. */}
-      <circle cx="25.5" cy="6" r="2.4" fill="currentColor" />
+      <path
+        d={ARROW_PATH}
+        stroke={arrowStroke}
+        strokeWidth="5.6"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Stroked as well as filled, so the head keeps its weight at small sizes. */}
+      <path
+        d={ARROWHEAD_PATH}
+        fill={arrowStroke}
+        stroke={arrowStroke}
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
-/** Mark plus wordmark, for headers and the auth panel. */
+/** Mark plus wordmark. Used by every header, so the pairing stays consistent. */
 export function LogoWordmark({
   size = 26,
+  variant = "gradient",
   className,
 }: {
   size?: number;
+  variant?: "gradient" | "mono";
   className?: string;
 }) {
   return (
     <span className={`inline-flex items-center gap-2.5 ${className ?? ""}`}>
-      <Logo size={size} />
-      <span className="text-lg font-semibold tracking-tight">ApplyFlow</span>
+      <Logo size={size} variant={variant} />
+      <span className="font-semibold tracking-tight">ApplyFlow</span>
     </span>
   );
 }

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { Logo } from "@/components/brand/logo";
+import { LogoWordmark } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
@@ -39,14 +40,10 @@ export default function Home() {
     <div className="min-h-svh bg-background">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <span className="text-primary">
-              <Logo />
-            </span>
-            <span className="font-semibold tracking-tight">ApplyFlow</span>
-          </div>
+          <LogoWordmark />
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <ThemeToggle />
             <Link
               href="/login"
               className={cn(buttonVariants({ variant: "ghost" }), "h-9 px-3.5")}

@@ -1,8 +1,8 @@
 "use client";
 
 import { RequireAuth } from "@/components/auth/require-auth";
-import { Logo } from "@/components/brand/logo";
-import { Button } from "@/components/ui/button";
+import { LogoWordmark } from "@/components/brand/logo";
+import { UserMenu } from "@/components/layout/user-menu";
 import { useAuth } from "@/lib/auth-context";
 
 /** Placeholder tiles. Milestone 3 replaces these with real counts. */
@@ -22,9 +22,10 @@ export default function DashboardPage() {
 }
 
 function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
-  const timezone = user?.profile?.timezone ?? "—";
+  // The timezone still drives the calculation — today's date differs by zone —
+  // it just isn't displayed as a label.
   const today = new Intl.DateTimeFormat("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -36,21 +37,9 @@ function Dashboard() {
     <div className="min-h-svh bg-background">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <span className="text-primary">
-              <Logo />
-            </span>
-            <span className="font-semibold tracking-tight">ApplyFlow</span>
-          </div>
+          <LogoWordmark />
 
-          <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-muted-foreground sm:inline">
-              {user?.email}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => void logout()}>
-              Sign out
-            </Button>
-          </div>
+          <UserMenu />
         </div>
       </header>
 
@@ -60,9 +49,7 @@ function Dashboard() {
             <h1 className="text-2xl font-semibold tracking-tight">
               Welcome back, {user?.first_name}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {today} · {timezone}
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">{today}</p>
           </div>
         </div>
 
