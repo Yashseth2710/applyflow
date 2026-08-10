@@ -56,6 +56,20 @@ def login_bucket(email: str) -> str:
     return f"login:{email.strip().lower()}"
 
 
+def reset_bucket(email: str) -> str:
+    """Password reset requests, keyed on the address the mail would go to.
+
+    Counted for addresses with no account as well, for the reason above: the
+    endpoint answers identically either way, and a limit that only applied to
+    real accounts would answer for it.
+
+    The address is the right unit here even though the caller's address is
+    known, because the harm is not load — it is a stranger's inbox filling up,
+    and that inbox is picked by the email, not by where the request came from.
+    """
+    return f"reset:{email.strip().lower()}"
+
+
 def ai_bucket(user_id: uuid.UUID) -> str:
     return f"ai:{user_id}"
 

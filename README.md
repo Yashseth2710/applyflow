@@ -33,6 +33,7 @@ the job to signing the offer.
 | ORM       | SQLAlchemy 2.0 + Alembic |
 | Database  | PostgreSQL 18 (Neon) |
 | Auth      | JWT — in-memory access token + httpOnly refresh cookie |
+| Email     | `smtplib` and a Gmail app password — one message to send, no provider needed |
 | Storage   | Uploaded files in Postgres — the free host wipes its disk on deploy |
 | Images    | Pillow — avatars are re-encoded, which strips EXIF and its GPS data |
 | AI        | Provider abstraction — `mock` / `ollama` (local only) / `gemini` |
@@ -166,6 +167,8 @@ Never commit `.env`. `.gitignore` blocks it; `.env.example` documents what is ne
 | `DATABASE_URL` | Postgres connection string (needs `?sslmode=require` on Neon) |
 | `JWT_SECRET` | Signing key — generate with `python -c "import secrets; print(secrets.token_urlsafe(64))"` |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins |
+| `FRONTEND_URL` | Where password reset links point. One address, unlike `CORS_ORIGINS` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Sending account for reset emails. Leave `SMTP_HOST` empty and the message is logged instead of sent — which is how development and the tests run |
 | `AI_PROVIDER` | `mock`, `ollama` or `gemini`. Defaults to `mock`, so nothing calls out unless asked |
 | `GEMINI_API_KEY` | Only needed when `AI_PROVIDER=gemini` |
 | `STORAGE_BACKEND` | `postgres` (default) or `local`. Local disk does not survive a deploy on the free tier |

@@ -38,6 +38,16 @@ LOGIN_LIMITS = ("10/minute", "60/hour")
 # is about catching something pathological rather than policing normal use.
 REFRESH_LIMIT = "30/minute"
 
+# Asking for a reset mail sends something to a mailbox that may belong to
+# someone else entirely, so the real limit is the durable one keyed on the
+# address being mailed. This one only stops a single caller working through a
+# list of addresses quickly.
+FORGOT_PASSWORD_LIMIT = "10/hour"
+
+# Completing a reset is cheap and idempotent, but the token is the only thing
+# guarding it, so this bounds how fast one caller can try guessing at signatures.
+RESET_PASSWORD_LIMIT = "20/hour"
+
 # The only endpoint that spends money. The free Gemini allowance is measured in
 # a few hundred calls a day, and answers are cached, so twenty an hour is more
 # than a real session needs and well short of exhausting the quota by lunchtime.

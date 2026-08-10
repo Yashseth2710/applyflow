@@ -20,6 +20,8 @@ export type TokenResponse = Schemas["TokenResponse"];
 export type AuthResponse = Schemas["AuthResponse"];
 export type RegisterPayload = Schemas["RegisterRequest"];
 export type LoginPayload = Schemas["LoginRequest"];
+export type ForgotPasswordPayload = Schemas["ForgotPasswordRequest"];
+export type ResetPasswordPayload = Schemas["ResetPasswordRequest"];
 export type CareerLevel = Schemas["CareerLevel"];
 
 // ---- account ----

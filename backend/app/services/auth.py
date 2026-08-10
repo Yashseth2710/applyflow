@@ -5,6 +5,8 @@ to status codes.
 """
 
 import uuid
+from dataclasses import dataclass
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
@@ -13,6 +15,8 @@ from app.core.security import (
     TokenError,
     create_access_token,
     create_refresh_token,
+    create_reset_token,
+    decode_reset_token,
     decode_token,
     hash_password,
     needs_rehash,
@@ -20,7 +24,7 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.repositories.user import UserRepository
-from app.services.rate_events import DurableLimiter, login_bucket
+from app.services.rate_events import DurableLimiter, login_bucket, reset_bucket
 
 
 class EmailAlreadyRegistered(Exception):
@@ -37,6 +41,26 @@ class AccountDisabled(Exception):
 
 class InvalidRefreshToken(Exception):
     pass
+
+
+class InvalidResetToken(Exception):
+    """The reset link is expired, forged, or has already been used."""
+
+
+@dataclass(frozen=True)
+class ResetEmail:
+    """A composed message the caller is expected to send.
+
+    Returned rather than sent, so the service stays free of SMTP and the
+    endpoint can hand the send to a background task — which is not a tidiness
+    point. Sending inline would make a request for a registered address take a
+    second or two longer than one for an address with no account, and the whole
+    endpoint is built around those two cases being indistinguishable.
+    """
+
+    to: str
+    subject: str
+    body: str
 
 
 # Argon2 verification of a throwaway hash, used to keep the timing of a
@@ -134,6 +158,77 @@ class AuthService:
         if not user.is_active:
             raise AccountDisabled
 
+        return user
+
+    def request_password_reset(self, *, email: str) -> ResetEmail | None:
+        """Returns the message to send, or None when there is nobody to send to.
+
+        The None case is not an error and the caller must not report it. An
+        endpoint that said "no account with that address" would be a way to test
+        whether any given email is registered here, which is the one thing login
+        and registration both go out of their way not to reveal.
+
+        Raises TooManyAttempts, which is safe to surface: the count is kept for
+        unknown addresses too, so a 429 says nothing about whether the account
+        exists.
+        """
+        bucket = reset_bucket(email)
+        window = timedelta(hours=1)
+        self.limits.check(bucket, limit=settings.PASSWORD_RESET_HOURLY_LIMIT, window=window)
+        self.limits.record(bucket, window=window)
+
+        user = self.users.get_by_email(email)
+        if user is None or not user.is_active:
+            return None
+
+        token = create_reset_token(str(user.id), user.password_hash)
+        link = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
+        minutes = settings.PASSWORD_RESET_EXPIRE_MINUTES
+
+        return ResetEmail(
+            to=user.email,
+            subject="Reset your ApplyFlow password",
+            body=(
+                f"Hi {user.first_name},\n\n"
+                "Someone asked to reset the password on your ApplyFlow account. "
+                "Open this link to choose a new one:\n\n"
+                f"{link}\n\n"
+                f"The link works once and expires in {minutes} minutes.\n\n"
+                "If this wasn't you, ignore this email — nothing has changed and "
+                "your current password still works.\n\n"
+                "— ApplyFlow"
+            ),
+        )
+
+    def reset_password(self, *, token: str, new_password: str) -> User:
+        # Two passes over the same token. The first reads the subject, because
+        # the fingerprint cannot be checked without knowing whose hash to
+        # compare it against; the second verifies it now that the user is known.
+        try:
+            user_id = uuid.UUID(decode_token(token, expected_type="reset"))
+        except (TokenError, ValueError) as exc:
+            raise InvalidResetToken from exc
+
+        user = self.users.get_by_id(user_id)
+        if user is None:
+            raise InvalidResetToken
+        if not user.is_active:
+            raise AccountDisabled
+
+        try:
+            decode_reset_token(token, user.password_hash)
+        except TokenError as exc:
+            raise InvalidResetToken from exc
+
+        self.users.update_password_hash(user, hash_password(new_password))
+        self.db.commit()
+
+        # Someone who has just proved they can read the account's mailbox should
+        # not then be told to wait fifteen minutes because of the failed
+        # attempts that sent them here in the first place.
+        self.limits.clear(login_bucket(user.email))
+
+        self.db.refresh(user)
         return user
 
     @staticmethod

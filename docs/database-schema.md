@@ -228,16 +228,21 @@ One row per attempt at something worth counting. See
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
-| bucket | VARCHAR(200) | what is being counted, e.g. `login:someone@example.com` or `ai:<user id>` |
+| bucket | VARCHAR(200) | what is being counted, e.g. `login:someone@example.com`, `reset:someone@example.com` or `ai:<user id>` |
 | created_at | TIMESTAMPTZ | |
 
 Indexed on `(bucket, created_at)` — every read is "how many in this bucket
 since t", and indexing the bucket alone would still scan every attempt ever
 made against it.
 
-Deliberately **not** linked to `users`. Failed logins are recorded for
-addresses that have no account, because counting only real ones would let an
-attacker tell the two apart by whether they ever see a 429.
+Deliberately **not** linked to `users`. Failed logins and password reset
+requests are recorded for addresses that have no account, because counting only
+real ones would let an attacker tell the two apart by whether they ever see a
+429.
+
+Password resets store nothing here beyond that count. The reset link is a signed
+token carrying a fingerprint of the password hash it was issued against, so
+there is no table of outstanding links to keep, expire or clean up.
 
 Rows are pruned per bucket on each write, with an occasional sweep of anything
 older than a day. Nothing here is interesting for longer than that.

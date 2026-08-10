@@ -26,6 +26,9 @@ import { StatusSplit } from "@/components/analytics/status-split";
 import { Timing } from "@/components/analytics/timing";
 import { ApplicationForm } from "@/components/applications/application-form";
 import { StatusBadge } from "@/components/applications/status-badge";
+import ForgotPasswordPage from "@/app/forgot-password/page";
+import LoginPage from "@/app/login/page";
+import ResetPasswordPage from "@/app/reset-password/page";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { UserMenu } from "@/components/layout/user-menu";
 import { UploadDropzone } from "@/components/resumes/upload-dropzone";
@@ -43,6 +46,10 @@ import type { User } from "@/lib/types";
 import { expectNoAxeViolations } from "./axe";
 import { renderWithProviders } from "./render";
 
+// Mutable so a test can put a token in the query string the way the reset link
+// does. Hoisted because vi.mock's factory runs before the module body.
+const nav = vi.hoisted(() => ({ search: new URLSearchParams() }));
+
 // The app router has no provider in a unit test, and useRouter throws without
 // one. Only navigation is stubbed — the components themselves are real.
 vi.mock("next/navigation", () => ({
@@ -54,7 +61,7 @@ vi.mock("next/navigation", () => ({
     prefetch: vi.fn(),
   }),
   usePathname: () => "/",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => nav.search,
 }));
 
 const user: User = {
@@ -318,6 +325,90 @@ describe("accessibility", () => {
         <AIPanel applicationId="0b6f2c1e-0000-4000-8000-000000000002" />,
       );
       await expectNoAxeViolations(container);
+    });
+  });
+
+  describe("signing in", () => {
+    beforeEach(() => {
+      nav.search = new URLSearchParams();
+    });
+
+    it("login page", async () => {
+      const { container } = renderWithProviders(<LoginPage />);
+      await expectNoAxeViolations(container);
+    });
+
+    it("offers a way out for someone who has forgotten their password", async () => {
+      renderWithProviders(<LoginPage />);
+
+      expect(screen.getByRole("link", { name: "Forgot password?" })).toHaveAttribute(
+        "href",
+        "/forgot-password",
+      );
+    });
+
+    it("forgot password page", async () => {
+      const { container } = renderWithProviders(<ForgotPasswordPage />);
+      await expectNoAxeViolations(container);
+    });
+
+    it("forgot password, after asking for a link", async () => {
+      const { container } = renderWithProviders(<ForgotPasswordPage />);
+
+      await userEvent.type(screen.getByLabelText("Email"), "priya@example.com");
+      await userEvent.click(screen.getByRole("button", { name: "Send reset link" }));
+
+      // role="status" rather than a plain paragraph: the form is replaced by
+      // this, and a screen reader would otherwise be told nothing happened.
+      await screen.findByRole("status");
+      await expectNoAxeViolations(container);
+    });
+
+    it("says the same thing whatever address is given", async () => {
+      // The endpoint answers identically for a registered and an unknown
+      // address on purpose. A page that reported "no such account" would give
+      // away what the API refuses to.
+      renderWithProviders(<ForgotPasswordPage />);
+
+      await userEvent.type(screen.getByLabelText("Email"), "nobody-at-all@example.com");
+      await userEvent.click(screen.getByRole("button", { name: "Send reset link" }));
+
+      expect(await screen.findByRole("status")).toHaveTextContent(
+        /If that address has an account|nobody-at-all@example.com/,
+      );
+    });
+
+    it("reset password page", async () => {
+      nav.search = new URLSearchParams("token=header.payload.signature");
+      const { container } = renderWithProviders(<ResetPasswordPage />);
+
+      await screen.findByLabelText("New password");
+      await expectNoAxeViolations(container);
+    });
+
+    it("a link with no token sends the person back for a new one", async () => {
+      // Mail clients do break long links across lines. Showing the form and
+      // failing on submit would waste the attempt and explain nothing.
+      renderWithProviders(<ResetPasswordPage />);
+
+      expect(
+        await screen.findByRole("link", { name: "Send a new link" }),
+      ).toHaveAttribute("href", "/forgot-password");
+      expect(screen.queryByLabelText("New password")).not.toBeInTheDocument();
+    });
+
+    it("will not submit two passwords that do not match", async () => {
+      nav.search = new URLSearchParams("token=header.payload.signature");
+      renderWithProviders(<ResetPasswordPage />);
+
+      await userEvent.type(await screen.findByLabelText("New password"), "a-long-enough-one");
+      await userEvent.type(screen.getByLabelText("Confirm new password"), "a-different-one");
+      await userEvent.click(screen.getByRole("button", { name: "Set new password" }));
+
+      const message = await screen.findByText("These do not match");
+      expect(screen.getByLabelText("Confirm new password")).toHaveAccessibleDescription(
+        message.textContent!,
+      );
     });
   });
 

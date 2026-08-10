@@ -90,6 +90,40 @@ def test_a_failed_login_still_costs_an_attempt(
     assert r.status_code == 429
 
 
+def test_the_reset_endpoints_answer_with_the_limiter_on(client: TestClient, limited: None) -> None:
+    """The decorator is not free: with headers enabled slowapi writes onto the
+    endpoint's `Response` parameter and raises if there is not one.
+
+    The rest of the suite runs with limiting off, so a missing parameter passes
+    every other test and then 500s the moment the app is really running. Worse,
+    the error escapes before the CORS middleware adds its header, so the browser
+    reports it as a CORS failure rather than as the server error it is.
+    """
+    forgot = client.post(
+        "/api/v1/auth/forgot-password", json={"email": "nobody-at-all@example.com"}
+    )
+    reset = client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": "not.a.jwt", "password": "long-enough-password"},
+    )
+
+    assert (forgot.status_code, reset.status_code) == (204, 400)
+
+
+def test_reset_emails_from_one_caller_run_out(client: TestClient, limited: None) -> None:
+    """The address-keyed limit is the durable one. This is the other layer: ten
+    an hour from a single caller, whichever addresses they name."""
+    codes = [
+        client.post(
+            "/api/v1/auth/forgot-password", json={"email": f"nobody-{n}@example.com"}
+        ).status_code
+        for n in range(11)
+    ]
+
+    assert codes[:10] == [204] * 10
+    assert codes[10] == 429
+
+
 def test_reading_data_is_not_limited(
     client: TestClient, registered_user: dict, limited: None
 ) -> None:

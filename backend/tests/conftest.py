@@ -8,10 +8,23 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_ai_provider
+from app.core.config import settings
 from app.core.database import engine, get_db
 from app.core.rate_limit import limiter
 from app.main import app
 from app.services.ai import MockProvider
+
+
+@pytest.fixture(autouse=True)
+def _no_real_email(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test may send mail, whatever is in the developer's .env.
+
+    Pinned the same way the AI provider is: once someone configures SMTP
+    locally, a test that asks for a password reset stops being a test and
+    starts delivering to a real inbox. With no host the message is logged
+    instead, which is what every assertion here expects anyway.
+    """
+    monkeypatch.setattr(settings, "SMTP_HOST", "")
 
 
 @pytest.fixture(autouse=True)

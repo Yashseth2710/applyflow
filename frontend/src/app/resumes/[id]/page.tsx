@@ -352,7 +352,7 @@ function VersionRow({
           Version {version.version}
         </Link>
         {version.is_current && (
-          <span className="inline-flex items-center gap-1 rounded-md bg-success-subtle px-1.5 py-0.5 text-xs font-medium text-success">
+          <span className="inline-flex items-center gap-1 rounded-md bg-success-subtle px-1.5 py-0.5 text-xs font-medium text-success-ink">
             <Check className="size-3" aria-hidden />
             Current
           </span>

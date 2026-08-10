@@ -65,6 +65,30 @@ class LoginRequest(BaseModel):
         return v.strip().lower()
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def normalise_email(cls, v: str) -> str:
+        return v.strip().lower()
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(
+        min_length=1,
+        # A JWT this app signs is nowhere near this long. The cap is only here
+        # so a megabyte of junk is rejected before anything tries to parse it.
+        max_length=2048,
+        description="From the link in the reset email",
+    )
+    password: str = Field(
+        min_length=8,
+        max_length=128,
+        description="The new password, at least 8 characters",
+    )
+
+
 class TokenResponse(BaseModel):
     """The refresh token is intentionally absent — it is delivered as an
     httpOnly cookie so JavaScript can never read it."""

@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Cookie,
     Depends,
     HTTPException,
@@ -16,10 +17,13 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_storage
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.email import send_email
 from app.core.rate_limit import (
+    FORGOT_PASSWORD_LIMIT,
     LOGIN_LIMITS,
     REFRESH_LIMIT,
     REGISTER_LIMIT,
+    RESET_PASSWORD_LIMIT,
     client_ip,
     limiter,
 )
@@ -27,8 +31,10 @@ from app.core.storage import Storage
 from app.models.user import User
 from app.schemas.auth import (
     AuthResponse,
+    ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UserResponse,
 )
@@ -38,6 +44,7 @@ from app.services.auth import (
     EmailAlreadyRegistered,
     InvalidCredentials,
     InvalidRefreshToken,
+    InvalidResetToken,
 )
 from app.services.rate_events import DurableLimiter, TooManyAttempts, register_bucket
 from app.services.user import UserService
@@ -218,6 +225,82 @@ def login(
         user=_user_with_avatar(user, db, storage),
         token=_token_response(access_token),
     )
+
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Send a password reset link",
+)
+@limiter.limit(FORGOT_PASSWORD_LIMIT)
+def forgot_password(
+    request: Request,
+    payload: ForgotPasswordRequest,
+    # Unused here, and not optional: slowapi writes its X-RateLimit headers onto
+    # this object, and raises if the endpoint it is decorating does not have
+    # one. The suite runs with limiting off, so that only shows up when the app
+    # is actually running — as a 500 with no CORS header on it.
+    response: Response,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> None:
+    """Always 204, whether or not the address has an account.
+
+    Anything else — a 404, a different message, even a noticeably faster
+    response — turns this into a way to ask whether a given person has an
+    account here, which login and registration both refuse to answer.
+    """
+    service = AuthService(db)
+    try:
+        message = service.request_password_reset(email=payload.email)
+    except TooManyAttempts as exc:
+        # Safe to report, unlike the 404 above: the count is kept for unknown
+        # addresses too, so hitting the limit reveals nothing either way.
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many reset emails requested for that address. Try again later.",
+            headers={"Retry-After": str(exc.retry_after)},
+        ) from exc
+
+    if message is not None:
+        # After the response, not during it. Sending inline would make the
+        # registered case measurably slower than the unregistered one, and the
+        # timing would answer the question the status code will not.
+        background.add_task(send_email, to=message.to, subject=message.subject, body=message.body)
+
+
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Set a new password using a reset link",
+)
+@limiter.limit(RESET_PASSWORD_LIMIT)
+def reset_password(
+    request: Request,
+    payload: ResetPasswordRequest,
+    response: Response,  # required by the limiter decorator; see forgot_password
+    db: Session = Depends(get_db),
+) -> None:
+    """Deliberately does not sign the user in.
+
+    A link from an email is weaker evidence than a password, and the reset page
+    is the one place a stale link is most likely to be opened by the wrong
+    person. Sending them to the login page to use the password they just chose
+    costs one form and keeps sessions coming from one place.
+    """
+    service = AuthService(db)
+    try:
+        service.reset_password(token=payload.token, new_password=payload.password)
+    except InvalidResetToken as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link is invalid or has expired. Request a new one.",
+        ) from exc
+    except AccountDisabled as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled",
+        ) from exc
 
 
 @router.post(

@@ -78,10 +78,24 @@ truth; this page is the shape of it.
 ```
 POST   /auth/register        create account, return tokens
 POST   /auth/login           email + password
+POST   /auth/forgot-password email, always 204
+POST   /auth/reset-password  token + new password, 204
 POST   /auth/refresh         rotate using the httpOnly cookie
 POST   /auth/logout          clear the refresh cookie
 GET    /auth/me              current user
 ```
+
+`POST /auth/forgot-password` answers **204 whether or not the address has an
+account**, with the same empty body and the same response time — the mail is
+sent as a background task, so the registered case is not measurably slower.
+Anything else would make it a way to test whether someone has an account here.
+A 429 is possible and is safe to show: the limit counts unknown addresses too.
+
+`POST /auth/reset-password` takes the token from the link and the new password.
+The token is a JWT carrying a fingerprint of the password hash it was issued
+against, so using it — or changing the password any other way — kills it. 400
+covers expired, forged, wrong-type and already-used alike; the message does not
+distinguish them. It deliberately does **not** return a session.
 
 ### Users
 
@@ -214,6 +228,9 @@ uncapped — reading your own data is neither expensive nor guessable.
 | `POST /auth/register` | 10/day | IP address | **yes** |
 | `POST /auth/login` | 10/min and 60/hour | IP address | no |
 | `POST /auth/login` | 10 failures / 15 min | **email** | **yes** |
+| `POST /auth/forgot-password` | 10/hour | IP address | no |
+| `POST /auth/forgot-password` | 3/hour | **email** | **yes** |
+| `POST /auth/reset-password` | 20/hour | IP address | no |
 | `POST /auth/refresh` | 30/min | IP address | no |
 | `POST /ai/applications/{id}/{task}` | 20/hour | account | no |
 | `POST /ai/applications/{id}/{task}` | 60/day | account | **yes** |
@@ -222,7 +239,12 @@ uncapped — reading your own data is neither expensive nor guessable.
 Failed logins are counted against the email whether or not that account exists,
 and the 429 is identical either way — otherwise the difference between 429 and
 401 would reveal which addresses are registered. A correct password clears the
-count. Cached AI answers never reach the model, so they do not count.
+count, and so does a completed password reset. Cached AI answers never reach the
+model, so they do not count.
+
+Reset emails are limited by the address being mailed rather than by the caller,
+because the person who suffers is whoever owns that inbox. Unknown addresses use
+up the same allowance, so a 429 says nothing about whether the account exists.
 
 `POST /resumes` also returns **413** when the upload would take the account past
 its total storage quota. `GET /resumes/limits` reports `storage_used_bytes`,

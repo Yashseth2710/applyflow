@@ -65,6 +65,7 @@
 
   /* Feedback */
   --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
   --color-success-foreground: var(--success-foreground);
   --color-success-subtle: var(--success-subtle);
   --color-warning: var(--warning);

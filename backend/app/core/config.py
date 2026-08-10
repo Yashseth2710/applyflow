@@ -38,9 +38,27 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # Long enough to find the mail in a spam folder, short enough that a link
+    # sitting in an inbox someone else later reads is usually already dead.
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 30
 
     # ---- CORS ----
     CORS_ORIGINS: str = "http://localhost:3000"
+    # Where the reset link points. Separate from CORS_ORIGINS, which is a list
+    # and describes who may call the API — this has to be one address, and
+    # putting a wrong one in an email is not something a user can work around.
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    # ---- Email ----
+    # Unset means "no mail server": the message is written to the log instead of
+    # sent. That is how development and the tests run — nothing to configure,
+    # no network, and the reset link is right there in the console.
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAIL_FROM: str = ""
+    EMAIL_FROM_NAME: str = "ApplyFlow"
 
     # ---- Rate limiting ----
     RATE_LIMIT_ENABLED: bool = True
@@ -50,6 +68,11 @@ class Settings(BaseSettings):
     # password and far less than a machine needs to be useful.
     LOGIN_ATTEMPT_LIMIT: int = 10
     LOGIN_ATTEMPT_WINDOW_MINUTES: int = 15
+    # Password reset emails per address per hour. Low on purpose: the person
+    # receiving the mail is not the person asking for it, so this is the limit
+    # that stops the endpoint being used to bury someone's inbox. Three is
+    # enough for a first attempt plus two "it didn't arrive" retries.
+    PASSWORD_RESET_HOURLY_LIMIT: int = 3
     # Per address, per day, and durable. An account created during a burst does
     # not vanish when the host restarts, so neither should the record of having
     # created it — an in-memory count hands back a full allowance every time
@@ -172,6 +195,17 @@ class Settings(BaseSettings):
     @property
     def login_attempt_window(self) -> timedelta:
         return timedelta(minutes=self.LOGIN_ATTEMPT_WINDOW_MINUTES)
+
+    @property
+    def email_configured(self) -> bool:
+        """Whether there is somewhere to actually send mail."""
+        return bool(self.SMTP_HOST.strip() and self.email_from_address)
+
+    @property
+    def email_from_address(self) -> str:
+        """Falls back to the SMTP username, which for Gmail is the address
+        anyway — one fewer variable to get wrong."""
+        return self.EMAIL_FROM.strip() or self.SMTP_USER.strip()
 
     @property
     def is_production(self) -> bool:

@@ -172,7 +172,10 @@ suite found two structural bugs: theme buttons inside a `role="menu"`, which is
 markup a menu may not contain and which the menu's own arrow-key handling
 skipped entirely; and form errors that had ids but nothing pointing at them, so
 a screen reader said "invalid" and never said why. The browser pass found five
-contrast failures the jsdom suite is structurally incapable of seeing.
+contrast failures the jsdom suite is structurally incapable of seeing, and later
+a sixth: `text-success` on `bg-success-subtle` reads 3.02:1 in light mode, which
+had been sitting on the resume version list since long before the page that
+turned it up.
 
 **Fills and text are separate tokens.** The stage colours are pitched to look
 right as bars, dots and chart series. As 12px text on their own 16% tint they
@@ -181,6 +184,11 @@ would have muted every chart on the site, so each has an `-ink` variant — the
 same hue and chroma, dark enough to read — and only text uses it. On a dark
 ground the fills already clear 4.5:1, so there the ink tokens simply alias them
 and a component never has to know which theme it is in.
+
+The same applies to the feedback colours: `--success-ink`, `--warning-ink`,
+`--danger-ink`. Any text sitting on a `-subtle` background wants the ink, and
+the plain token is for fills and icons only. That is the rule the resume list
+broke, so it is written down here rather than left to be rediscovered.
 
 ### 9. Rate limits are per endpoint, and count the right thing
 
@@ -306,9 +314,10 @@ and the message says so.
 Written down because a security note that only lists wins is not much use.
 
 **Being locked out on purpose.** Anyone who knows your email can keep it in
-15-minute lockouts indefinitely. That is inherent to counting by account, and
-the usual escape — password reset — does not exist here. The window is short
-and a correct password clears it instantly, which is the mitigation, not a fix.
+15-minute lockouts indefinitely. That is inherent to counting by account. The
+window is short, a correct password clears it instantly, and since decision 15 a
+completed password reset clears it too — so there is a way out that does not
+involve waiting. It is a mitigation rather than a fix.
 
 **Failed logins now cost a database write.** Making the count durable means
 unauthenticated traffic can make the database do work. Pruning bounds the
@@ -318,7 +327,9 @@ trade made on purpose, not an oversight.
 **Refresh tokens still cannot be revoked.** `issue_tokens` mints a pair with no
 server-side record, so a stolen refresh cookie is good for seven days and
 logout only clears it from the browser it was in. The fix is a sessions table
-with rotation and reuse detection. Not built.
+with rotation and reuse detection. Not built. This is also why a password reset
+does not end other sessions: there is nothing to end them from. Worth knowing if
+the reason for resetting was that someone else had the old password.
 
 **No security response headers, and no dependency scanning.** No HSTS,
 `X-Content-Type-Options`, `X-Frame-Options` or CSP; nothing runs `pip-audit` or
@@ -369,6 +380,60 @@ of a valid session. Otherwise an unattended laptop is enough to take an account
 permanently or destroy it. Deletion cascades from `users` through every table
 including `stored_files`, and the row is removed rather than flagged — a soft
 delete would leave the address unusable for signing up again.
+
+### 15. Password reset: a signed link, no table, no provider
+
+Someone who has forgotten their password needs a way back in that does not
+depend on an administrator. Two things were rejected before this one.
+
+**Mailing a newly generated password** was the first idea and is worse than it
+looks: anyone who knows an address could then force a reset and lock the owner
+out of their own account repeatedly, and the working password would sit in a
+mailbox in plain text forever. A link changes nothing until the real owner
+clicks it.
+
+**A hosted email provider** was the second. Resend and its peers require a
+verified sending domain, which means owning a domain, which is not ₹0. Gmail
+with an app password sends the same message through `smtplib` in about thirty
+lines of standard library.
+
+**The token is a JWT, and there is no table.** Type `reset`, 30 minutes, subject
+= user id, plus `fp`: a SHA-256 fingerprint of the password hash the account had
+when the link was issued. Using the link changes the password, which changes the
+hash, which changes the fingerprint — so the link stops working, single use with
+nothing stored. Changing the password anywhere else invalidates outstanding
+links for free. The hash itself never travels in the token: a JWT is signed, not
+encrypted, and everything in it is readable by whoever holds the link.
+
+**`POST /auth/forgot-password` always answers 204.** An address with no account
+gets exactly the same status, the same empty body, and — because the send is a
+background task rather than part of the request — the same response time.
+Anything else turns the endpoint into a way to ask whether a given person has an
+account here, which login and registration both refuse to answer. The 429 is
+safe to show because the limit is counted for unknown addresses too.
+
+**Three requests per address per hour, durable.** Keyed on the address being
+mailed rather than the caller's, because the harm here is not load on the
+server — it is a stranger's inbox filling up, and the inbox is chosen by the
+email in the request.
+
+**A successful reset clears the login-attempt bucket.** The failed attempts are
+what sent the person to this page; leaving the account locked for another
+fifteen minutes after they have proved they can read its mailbox would be a dead
+end.
+
+**It does not sign them in.** A link from an email is weaker evidence than a
+password, and a stale link in an old inbox is the case most likely to be opened
+by the wrong person. The flow ends at the login page with the password they just
+chose.
+
+With `SMTP_HOST` unset the message is written to the log instead of sent. That
+is how development and the whole test suite run: no network, no provider, and
+the reset link visible in the console.
+
+Known limits, accepted: Gmail allows roughly 500 messages a day, mail from a
+personal address can land in a stranger's spam folder, and if the host blocks
+outbound SMTP the one email module has to be swapped for an API sender.
 
 ---
 
