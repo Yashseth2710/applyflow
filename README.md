@@ -142,6 +142,7 @@ pytest --cov=app            # with coverage
 ruff check .                # lint
 ruff format .               # format
 mypy app                    # type check
+pip-audit -r requirements.txt -r requirements-dev.txt   # known vulnerabilities
 alembic revision --autogenerate -m "message"
 alembic upgrade head
 ```
@@ -154,6 +155,7 @@ npm run build
 npm run lint
 npx tsc --noEmit            # type check
 npx vitest                  # unit tests, including the accessibility audit
+npm audit                   # known vulnerabilities; CI fails on high and above
 ```
 
 ---

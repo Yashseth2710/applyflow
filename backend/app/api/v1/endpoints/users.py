@@ -77,7 +77,7 @@ def set_avatar(
         user = service.set_avatar(current_user, file.file, file.content_type)
     except InvalidAvatar as exc:
         raise HTTPException(
-            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=http_status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
     return _with_avatar(user, service)
 
@@ -116,7 +116,7 @@ def change_password(
         ) from exc
     except SamePassword as exc:
         raise HTTPException(
-            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=http_status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="The new password is the same as the current one.",
         ) from exc
 

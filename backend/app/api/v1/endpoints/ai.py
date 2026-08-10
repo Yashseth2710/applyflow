@@ -100,7 +100,7 @@ def generate(
     except MissingInput as exc:
         # The request was fine; the application isn't ready for it yet.
         raise HTTPException(
-            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=http_status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
     except AIRateLimited as exc:
         raise HTTPException(

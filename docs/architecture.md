@@ -331,9 +331,10 @@ with rotation and reuse detection. Not built. This is also why a password reset
 does not end other sessions: there is nothing to end them from. Worth knowing if
 the reason for resetting was that someone else had the old password.
 
-**No security response headers, and no dependency scanning.** No HSTS,
-`X-Content-Type-Options`, `X-Frame-Options` or CSP; nothing runs `pip-audit` or
-`npm audit` in CI.
+**The CSP allows inline script.** Headers and dependency scanning arrived in
+decision 16, but the policy is not nonce-based, so `script-src` does not stop an
+injected script the way a strict policy would. The reasoning and what would
+change the answer are in that decision.
 
 ### 13. Profile pictures are re-encoded, never stored as uploaded
 
@@ -435,6 +436,60 @@ Known limits, accepted: Gmail allows roughly 500 messages a day, mail from a
 personal address can land in a stranger's spam folder, and if the host blocks
 outbound SMTP the one email module has to be swapped for an API sender.
 
+### 16. Response headers, and dependencies that are actually checked
+
+Both halves of this are about the same thing: problems that arrive without
+anyone writing a bug.
+
+**Headers.** The API sends `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, a
+`Permissions-Policy` denying camera, microphone and location, and
+`Content-Security-Policy: default-src 'none'` — an endpoint that answers in JSON
+has no business loading anything. `Strict-Transport-Security` is sent **only in
+production and only over HTTPS**: from a plain-HTTP localhost it would pin every
+project on the developer's machine to HTTPS, which is genuinely awkward to
+undo. Because the host terminates TLS, the scheme is read from
+`x-forwarded-proto` — a header the client can lie about, which here costs
+nothing, since the worst a liar achieves is pinning their own browser.
+
+Referrer-Policy earns its place now rather than in the abstract: a password
+reset link lives in a URL, and a full referrer is exactly how such a link ends
+up in a third party's access log.
+
+**The frontend CSP is deliberately not nonce-based.** A nonce must be unique per
+request, so every one of the fifteen prerendered routes would become
+server-rendered on every visit. What that buys is protection against injected
+script — and nothing in this app renders HTML it did not write. There is no
+`dangerouslySetInnerHTML` anywhere and React escapes the rest. What the policy
+still does, and these are not decoration: `frame-ancestors` stops the app being
+framed, `object-src 'none'` closes a perennial escape hatch, `base-uri` stops an
+injected `<base>` repointing every relative URL, `form-action` stops a form
+being made to post credentials elsewhere, and `connect-src` means script that
+does somehow run cannot phone data home. `'unsafe-eval'` is allowed outside
+production only, because React's dev-time refresh needs it.
+
+**If the app ever renders HTML it did not write, this decision needs
+revisiting** and the cost of nonces becomes worth paying.
+
+**Dependencies.** `pip-audit` and `npm audit --audit-level=high` run in CI, and
+Dependabot raises weekly grouped pull requests for pip, npm and the GitHub
+Actions themselves. pip-audit reads the pinned requirements files rather than
+the installed environment, so what is checked is what a deploy would install.
+
+The first run was not academic — it found 64 advisories across four runtime
+packages, and fixing them meant FastAPI 0.115 → 0.141 and Starlette 0.41 → 1.6,
+a major version. That is the argument for the weekly cadence: a dependency left
+alone for months is not stable, it is just unexamined, and the upgrade only gets
+harder.
+
+One warning is left after that upgrade and is deliberately not chased:
+`starlette.testclient` says `httpx` is deprecated in favour of `httpx2`. It
+comes from inside FastAPI's own module rather than from anything here, so the
+fix belongs upstream. Everything the upgrade left in *our* code — the renamed
+`HTTP_422_UNPROCESSABLE_CONTENT` and `HTTP_413_CONTENT_TOO_LARGE` constants —
+was updated, so a warning appearing in a future run means something new rather
+than something known.
+
 ---
 
 ## AI provider abstraction
@@ -492,6 +547,9 @@ mode breaks Alembic migrations and psycopg3 prepared statements.
 | Rate limiting | Per endpoint, via `slowapi`. Registration 5/hour, login 10/minute and 60/hour, refresh 30/minute, AI generation 20/hour per account. See decision 9 |
 | Secrets | Env vars only; `.env` gitignored and verified |
 | Errors | Generic messages to clients; details logged server-side |
+| Password reset | Signed link, single use via a hash fingerprint, no stored tokens. See decision 15 |
+| Response headers | nosniff, frame denial, referrer, permissions and CSP on both apps; HSTS in production only. See decision 16 |
+| Dependencies | `pip-audit` and `npm audit` in CI, weekly Dependabot. See decision 16 |
 
 Authorization is enforced at the repository layer, so no endpoint can accidentally
 omit the ownership filter.

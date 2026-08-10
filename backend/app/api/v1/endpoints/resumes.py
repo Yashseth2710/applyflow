@@ -136,13 +136,13 @@ def upload_resume(
         )
     except InvalidResumeFile as exc:
         raise HTTPException(
-            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=http_status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
     except StorageQuotaExceeded as exc:
         # 413 rather than 422: nothing is wrong with the file, it is the size
         # that cannot be accepted, and the message says what to do about it.
         raise HTTPException(
-            status_code=http_status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc)
+            status_code=http_status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc)
         ) from exc
     except ResumeNotFound as exc:
         raise _NOT_FOUND from exc

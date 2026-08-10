@@ -1,0 +1,40 @@
+version: 2
+
+# Weekly rather than daily. Dependencies here are pinned exactly, so every
+# update is a pull request, and a daily cadence on a solo project produces more
+# noise than anyone reads — which ends with the alerts being ignored, the
+# opposite of the point.
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # One pull request for the routine bumps. Anything with a CVE arrives
+      # separately through a security update, which Dependabot raises
+      # regardless of this schedule.
+      backend:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      frontend:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # The actions in the workflow are pinned to major tags, so these are rare —
+  # and they are the ones that matter most: an action runs with the repository
+  # checked out and the workflow's secrets in reach.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday

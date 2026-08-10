@@ -68,6 +68,15 @@ jobs:
       - name: Tests
         run: pytest --cov=app --cov-report=term-missing
 
+      # Audits the pinned files rather than the installed environment, so what
+      # is checked is what a deploy would actually install. After the tests on
+      # purpose: a known CVE is worth failing a build over, but not before the
+      # more informative failure has had its chance to happen.
+      - name: Audit dependencies
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt -r requirements-dev.txt --progress-spinner off
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -107,3 +116,10 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+
+      # --omit=dev would hide most of it: nearly everything here is a build or
+      # test tool, and a compromised one still runs on this machine with the
+      # repository checked out. --audit-level=high keeps the build from failing
+      # over the low-severity noise that npm reports constantly.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high

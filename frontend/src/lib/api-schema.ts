@@ -984,18 +984,12 @@ export interface components {
         };
         /** Body_set_avatar_api_v1_users_me_avatar_put */
         Body_set_avatar_api_v1_users_me_avatar_put: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
         };
         /** Body_upload_resume_api_v1_resumes_post */
         Body_upload_resume_api_v1_resumes_post: {
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /** Title */
             title?: string | null;
@@ -1814,6 +1808,10 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
         /**
          * VolumePoint

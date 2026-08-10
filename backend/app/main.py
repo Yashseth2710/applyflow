@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.headers import SecurityHeadersMiddleware
 from app.core.rate_limit import limiter, rate_limit_handler
 
 logging.basicConfig(
@@ -42,6 +43,11 @@ app = FastAPI(
     openapi_url=None if settings.is_production else "/openapi.json",
     lifespan=lifespan,
 )
+
+# Added before CORS, which means it runs after it on the way back out, so the
+# headers land on CORS's own preflight responses too. Starlette applies
+# middleware in reverse order of registration.
+app.add_middleware(SecurityHeadersMiddleware)
 
 # allow_credentials=True requires explicit origins — browsers reject the
 # wildcard when cookies are involved, and the refresh token is a cookie.
