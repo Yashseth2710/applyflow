@@ -1,13 +1,24 @@
 import type { NextConfig } from "next";
 
 /**
- * Where the API lives. It has to appear in connect-src, or the browser blocks
- * every request the app makes — including in development, where it is a
- * different port and therefore a different origin.
+ * Where the API lives, as a connect-src entry.
+ *
+ * Deployed, the API is a second service behind the same domain and
+ * NEXT_PUBLIC_API_URL is the relative "/api/v1" — same origin, so 'self'
+ * already covers it and there is nothing to add. In development it is a
+ * different port, which is a different origin, and the browser blocks every
+ * request unless it is named here.
  */
-const apiOrigin = new URL(
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1",
-).origin;
+function apiConnectSrc(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  try {
+    return ` ${new URL(configured).origin}`;
+  } catch {
+    // Relative, so same-origin. new URL throws on those rather than
+    // resolving them, which is why this is a try and not a startsWith check.
+    return "";
+  }
+}
 
 /**
  * The policy is deliberately not nonce-based.
@@ -41,7 +52,8 @@ const csp = [
   // header, so a plain <img src> to the API would arrive unauthenticated.
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${apiOrigin}${process.env.NODE_ENV === "production" ? "" : " ws: wss:"}`,
+  // ws: is the dev server's hot reload socket, and only ever in development.
+  `connect-src 'self'${apiConnectSrc()}${process.env.NODE_ENV === "production" ? "" : " ws: wss:"}`,
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",

@@ -101,7 +101,11 @@ class Settings(BaseSettings):
     DEFAULT_TIMEZONE: str = "Asia/Kolkata"
 
     # ---- Uploads ----
-    MAX_UPLOAD_SIZE_MB: int = 5
+    # Four, not five, because the host rejects any request body over 4.5 MB
+    # before it reaches this process. At five, a 4.6 MB resume would be refused
+    # by the platform with a message we did not write and cannot change; at
+    # four, the user gets our own explanation and the limit is one we enforce.
+    MAX_UPLOAD_SIZE_MB: int = 4
     # Total stored bytes per account. A per-file cap alone does not stop
     # anything: uploading the same five megabytes two hundred times is well
     # inside every per-file rule and fills the free database on its own.

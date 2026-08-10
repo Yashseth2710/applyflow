@@ -4,8 +4,10 @@ AI-powered job application management platform. Track every application, resume,
 interview, and reminder in one place — and use AI to analyse job descriptions,
 improve resume relevance, and prepare for interviews.
 
-Work in progress. Applications, resumes, interviews, analytics and account
-settings are built; deployment is not.
+Applications, resumes, interviews, analytics, account settings and password
+recovery are built. Deployed as a single Vercel project: the Next.js frontend
+and the FastAPI backend run as two services behind one domain, with Postgres on
+Neon.
 
 ---
 
@@ -38,7 +40,7 @@ the job to signing the offer.
 | Images    | Pillow — avatars are re-encoded, which strips EXIF and its GPS data |
 | AI        | Provider abstraction — `mock` / `ollama` (local only) / `gemini` |
 | Testing   | pytest, Vitest + Testing Library, axe-core for accessibility |
-| Hosting   | Vercel (frontend), Render (backend), Neon (database) — not yet deployed |
+| Hosting   | One Vercel project, two services — Next.js and FastAPI behind the same domain. Neon for the database |
 
 ---
 
@@ -168,7 +170,7 @@ Never commit `.env`. `.gitignore` blocks it; `.env.example` documents what is ne
 |----------|---------|
 | `DATABASE_URL` | Postgres connection string (needs `?sslmode=require` on Neon) |
 | `JWT_SECRET` | Signing key — generate with `python -c "import secrets; print(secrets.token_urlsafe(64))"` |
-| `CORS_ORIGINS` | Comma-separated allowed frontend origins |
+| `CORS_ORIGINS` | Comma-separated allowed frontend origins. Only matters in development — deployed, both services share one domain, so requests are same-origin |
 | `FRONTEND_URL` | Where password reset links point. One address, unlike `CORS_ORIGINS` |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Sending account for reset emails. Leave `SMTP_HOST` empty and the message is logged instead of sent — which is how development and the tests run |
 | `AI_PROVIDER` | `mock`, `ollama` or `gemini`. Defaults to `mock`, so nothing calls out unless asked |
@@ -181,6 +183,42 @@ Never commit `.env`. `.gitignore` blocks it; `.env.example` documents what is ne
 
 `.env.example` lists every variable, including the ones with sensible defaults
 that are not worth setting by hand.
+
+---
+
+## Deployment
+
+One Vercel project, two services, defined in [`vercel.json`](vercel.json).
+`frontend/` builds as Next.js, `backend/` as FastAPI with `app.main:app` as the
+entrypoint, and a rewrite sends `/api/*` to the backend and everything else to
+the frontend. The install command is set explicitly because `pyproject.toml`
+declares no dependencies — without it the runtime would install nothing.
+
+**Before the first deploy**, turn connection pooling on in Neon and use the
+`-pooler` hostname for the deployed `DATABASE_URL`. Serverless opens a
+connection per invocation, and the direct hostname runs out.
+
+Environment variables to set in the Vercel project:
+
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | The Neon **pooled** connection string |
+| `JWT_SECRET` | The same one you use locally, or a fresh one — changing it signs everyone out |
+| `ENVIRONMENT` | `production` — turns on HSTS and turns off `/docs` |
+| `RATE_LIMIT_PROXY_DEPTH` | `1`. The app refuses to start in production without it |
+| `AI_PROVIDER` | `gemini` |
+| `GEMINI_API_KEY` | From aistudio.google.com |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | Gmail and an app password |
+| `FRONTEND_URL` | The deployment URL. Reset links point here, so it cannot stay as localhost |
+| `NEXT_PUBLIC_API_URL` | `/api/v1` — relative, because both services share the domain |
+
+`FRONTEND_URL` is the one that needs a second pass: it is only known after the
+first deploy, so set it and redeploy.
+
+**Migrations do not run on deploy.** There is no shell on the platform, so
+`alembic upgrade head` is run from a machine with the Neon connection string.
+Deliberate — a migration that runs automatically on every deploy is a migration
+that can run twice at once.
 
 ---
 

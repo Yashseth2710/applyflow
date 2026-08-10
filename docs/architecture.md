@@ -107,12 +107,53 @@ their local time and the interviewer's ("10:00 AM EST / 8:30 PM IST").
 **Why:** storing local time as text makes an instant unrecoverable — you cannot
 correctly re-render it for another zone, and DST breaks it.
 
-### 5. Backend host chosen up front: Render
+### 5. Host chosen up front, and later changed
 
-**Why now:** free Python hosts suspend after inactivity, so the first request pays a
-30–50s cold start. That constrains design — AI endpoints must be async-friendly, the
-frontend needs honest loading states, and health checks need generous timeouts.
-Discovering this at deployment time would mean reworking finished features.
+**Why choose early:** a host is not a deployment detail, it is a design
+constraint. Free Python hosts suspend after inactivity, so the first request
+pays a 30–50s cold start — which is why AI endpoints are async-friendly, the
+frontend has honest loading states, and health checks have generous timeouts.
+Discovering that at deployment time would have meant reworking finished
+features.
+
+**The original answer was Render for the API and Vercel for the frontend.** It
+was replaced by a single Vercel project once the app was ready to deploy: the
+user wanted one place, and Vercel's Services feature builds a `frontend/` Next
+app and a `backend/` FastAPI app as two services behind one domain. Both
+answers were free; this one has fewer moving parts.
+
+The switch is not neutral, and the concessions are worth stating plainly:
+
+**Same origin, which is a real gain.** The API is reached at `/api/...` on the
+same domain, so there is no CORS at all, and the refresh cookie's
+`SameSite=lax` keeps working. Split across two hosts it would have had to
+become `SameSite=None`, which is a weaker position to be in.
+
+**Uploads drop from 5 MB to 4 MB.** The platform rejects any request body over
+4.5 MB before the app sees it. Sitting under that means a rejection the user
+gets an explanation for, rather than one from infrastructure they cannot see.
+
+**The in-memory rate limiter stops meaning much.** Each invocation can be a
+fresh process, so slowapi's counters no longer accumulate. The durable,
+database-backed limits — failed sign-ins per email, registrations per address,
+AI per day, uploads per hour, reset emails per address — are unaffected, and
+those were always the layer that mattered. Decision 10 explains why they exist
+separately; this is that reasoning collecting on its bet.
+
+**The reset email is sent inline instead of after the response.** A serverless
+process can be frozen the moment it responds, so work queued for "afterwards"
+may never run, and an email that silently fails to arrive is worse than a
+slower request. Sending inline reintroduces a timing difference between an
+address that has an account and one that does not, so the endpoint now holds
+both paths to the same floor (`MIN_FORGOT_PASSWORD_SECONDS`). That is weaker
+than a background task and much stronger than nothing: it leaks only when a
+send runs slower than the floor, rather than announcing "instant means no
+account" every time.
+
+**Connections must go through Neon's pooler.** Serverless opens a connection
+per invocation, so `DATABASE_URL` uses the `-pooler` hostname in production.
+Locally it stays direct, which is why `.env.example` still says to avoid it
+there.
 
 ### 6. Analytics withholds percentages until the numbers earn them
 

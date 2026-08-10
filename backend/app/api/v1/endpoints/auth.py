@@ -1,10 +1,10 @@
 """Authentication endpoints."""
 
+import time
 from datetime import timedelta
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Cookie,
     Depends,
     HTTPException,
@@ -108,6 +108,23 @@ def clear_session_cookies(response: Response) -> None:
         secure=settings.is_production,
         samesite="lax",
     )
+
+
+#: Floor on how long /forgot-password takes, in seconds.
+#:
+#: The endpoint answers 204 whether or not the address has an account, but
+#: sending a mail takes about a second and not sending one takes none. Left
+#: alone, that difference answers by stopwatch the question the status code
+#: deliberately does not. A floor costs a second on an endpoint people reach
+#: once, and only leaks when a send runs slower than it — a far smaller signal
+#: than "instant means no account".
+MIN_FORGOT_PASSWORD_SECONDS = 1.5
+
+
+def _pad_to(started: float, seconds: float) -> None:
+    remaining = seconds - (time.monotonic() - started)
+    if remaining > 0:
+        time.sleep(remaining)
 
 
 def _token_response(access_token: str) -> TokenResponse:
@@ -241,7 +258,6 @@ def forgot_password(
     # one. The suite runs with limiting off, so that only shows up when the app
     # is actually running — as a 500 with no CORS header on it.
     response: Response,
-    background: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> None:
     """Always 204, whether or not the address has an account.
@@ -250,6 +266,8 @@ def forgot_password(
     response — turns this into a way to ask whether a given person has an
     account here, which login and registration both refuse to answer.
     """
+    started = time.monotonic()
+
     service = AuthService(db)
     try:
         message = service.request_password_reset(email=payload.email)
@@ -263,10 +281,16 @@ def forgot_password(
         ) from exc
 
     if message is not None:
-        # After the response, not during it. Sending inline would make the
-        # registered case measurably slower than the unregistered one, and the
-        # timing would answer the question the status code will not.
-        background.add_task(send_email, to=message.to, subject=message.subject, body=message.body)
+        # Sent inline rather than as a background task. On a serverless host
+        # the process can be frozen the moment the response goes out, and work
+        # queued for "after" may simply never happen — a reset email that
+        # silently fails to arrive is worse than a slower request.
+        send_email(to=message.to, subject=message.subject, body=message.body)
+
+    # Sending takes about a second, and not sending takes none, which would
+    # answer by stopwatch the question the 204 refuses to answer in words.
+    # Both paths are held to the same floor instead.
+    _pad_to(started, MIN_FORGOT_PASSWORD_SECONDS)
 
 
 @router.post(
