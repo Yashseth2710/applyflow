@@ -192,9 +192,14 @@ function DropdownMenuRadioItem({
   className,
   children,
   inset,
+  indicator = true,
   ...props
 }: MenuPrimitive.RadioItem.Props & {
   inset?: boolean
+  /** Set false when the selection is already obvious some other way — a
+   *  segmented control, say, where a tick beside the highlight is just noise.
+   *  The role and keyboard behaviour are unchanged; only the tick goes. */
+  indicator?: boolean
 }) {
   return (
     <MenuPrimitive.RadioItem
@@ -206,15 +211,17 @@ function DropdownMenuRadioItem({
       )}
       {...props}
     >
-      <span
-        className="pointer-events-none absolute right-2 flex items-center justify-center"
-        data-slot="dropdown-menu-radio-item-indicator"
-      >
-        <MenuPrimitive.RadioItemIndicator>
-          <CheckIcon
-          />
-        </MenuPrimitive.RadioItemIndicator>
-      </span>
+      {indicator && (
+        <span
+          className="pointer-events-none absolute right-2 flex items-center justify-center"
+          data-slot="dropdown-menu-radio-item-indicator"
+        >
+          <MenuPrimitive.RadioItemIndicator>
+            <CheckIcon
+            />
+          </MenuPrimitive.RadioItemIndicator>
+        </span>
+      )}
       {children}
     </MenuPrimitive.RadioItem>
   )

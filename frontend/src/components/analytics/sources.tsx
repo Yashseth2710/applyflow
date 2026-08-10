@@ -35,7 +35,10 @@ export function Sources({ sources }: { sources: SourceStat[] }) {
                 <span className="tabular shrink-0 text-sm">{source.total}</span>
               </div>
 
-              <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-muted"
+                aria-hidden
+              >
                 {/* Two segments of one bar: interviews sit inside the total, so
                     stacking them shows the share without a second chart. */}
                 <div

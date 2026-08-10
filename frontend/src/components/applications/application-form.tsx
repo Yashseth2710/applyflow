@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { cloneElement, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -268,6 +268,9 @@ export function ApplicationForm({
                 <ThemedSelect
                   id="resume_id"
                   aria-label="Resume used"
+                  // Field clones its child to attach this, but the child here
+                  // is a Controller, which drops props it doesn't recognise.
+                  aria-describedby="resume_id-hint"
                   placeholder="None"
                   value={field.value ?? ""}
                   onChange={field.onChange}
@@ -350,6 +353,11 @@ export function ApplicationForm({
  * `htmlFor` is required, not optional. A label with no association is invisible
  * to screen readers and doesn't focus its input when clicked — and it is very
  * easy to forget, so the type makes it impossible.
+ *
+ * The error or hint is attached to the control with `aria-describedby` for the
+ * same reason: on its own `aria-invalid` announces "Company, invalid" and never
+ * reads the sentence that says what is actually wrong. Attaching it here rather
+ * than at a dozen call sites is the only way it stays true for all of them.
  */
 function Field({
   label,
@@ -364,8 +372,14 @@ function Field({
   error?: string;
   hint?: string;
   required?: boolean;
-  children: React.ReactNode;
+  /** A single control. It is cloned to carry the description. */
+  children: React.ReactElement<{ "aria-describedby"?: string }>;
 }) {
+  const describedBy = error ? `${htmlFor}-error` : hint ? `${htmlFor}-hint` : undefined;
+  const control = describedBy
+    ? cloneElement(children, { "aria-describedby": describedBy })
+    : children;
+
   return (
     <div className="space-y-2">
       <Label htmlFor={htmlFor}>
@@ -376,7 +390,7 @@ function Field({
           </span>
         )}
       </Label>
-      {children}
+      {control}
       {error ? (
         <p id={`${htmlFor}-error`} className="text-sm text-danger">
           {error}

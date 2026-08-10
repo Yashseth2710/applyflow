@@ -26,6 +26,7 @@ export function ThemedSelect({
   className,
   "aria-label": ariaLabel,
   "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: {
   id?: string;
   value: string;
@@ -35,6 +36,7 @@ export function ThemedSelect({
   className?: string;
   "aria-label"?: string;
   "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }) {
   return (
     <Select
@@ -46,6 +48,7 @@ export function ThemedSelect({
         id={id}
         aria-label={ariaLabel}
         aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         className={cn("h-9 w-full bg-surface-raised px-3", className)}
       >
         <SelectValue placeholder={placeholder} />

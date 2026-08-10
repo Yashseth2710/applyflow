@@ -23,7 +23,11 @@ export function StatusBadge({
       )}
       style={{
         backgroundColor: `color-mix(in oklch, var(${meta.token}) 16%, transparent)`,
-        color: `var(${meta.token})`,
+        // The ink variant of the same token. The stage colours are tuned to
+        // look right as fills, and at 12px on their own tint they read between
+        // 2.6:1 and 3.5:1 in light mode. Every stage defines `-ink` in both
+        // themes, so appending the suffix always resolves.
+        color: `var(${meta.token}-ink)`,
       }}
     >
       <span

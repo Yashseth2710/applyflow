@@ -31,7 +31,10 @@ export function Timing({ stages }: { stages: StageDuration[] }) {
                   {meta.short}
                 </span>
 
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
+                  aria-hidden
+                >
                   <div
                     className="h-full rounded-full"
                     style={{

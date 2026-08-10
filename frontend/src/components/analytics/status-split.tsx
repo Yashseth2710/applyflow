@@ -37,7 +37,10 @@ export function StatusSplit({ statuses }: { statuses: StatusCount[] }) {
         </p>
       ) : (
         <>
-          <div className="mt-5 flex h-2.5 overflow-hidden rounded-full">
+          <div
+            className="mt-5 flex h-2.5 overflow-hidden rounded-full"
+            aria-hidden
+          >
             {present.map((status) => (
               <div
                 key={status}

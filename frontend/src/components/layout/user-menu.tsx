@@ -6,6 +6,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -58,32 +60,37 @@ export function UserMenu() {
 
         <DropdownMenuSeparator />
 
-        <div className="px-2 py-1.5">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Theme</p>
-          <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
-            {THEMES.map(({ value, label, icon: Icon }) => {
-              // Before mount `theme` is undefined on the client, so nothing is
-              // marked active rather than briefly highlighting the wrong one.
-              const active = mounted && theme === value;
-              return (
-                <button
+        {/* A radio group rather than three toggle buttons. Inside a menu only
+            menu items, groups and separators are legal children, so plain
+            buttons here are both invalid markup and skipped by the menu's own
+            arrow-key navigation — the control is visible but unreachable. */}
+        <DropdownMenuRadioGroup
+          aria-label="Theme"
+          // Before mount `theme` is undefined on the client, so nothing is
+          // marked active rather than briefly highlighting the wrong one.
+          value={mounted ? (theme ?? "") : ""}
+          onValueChange={(next) => setTheme(next as string)}
+        >
+          <div className="px-2 py-1.5">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Theme</p>
+            <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
+              {THEMES.map(({ value, label, icon: Icon }) => (
+                <DropdownMenuRadioItem
                   key={value}
-                  type="button"
-                  onClick={() => setTheme(value)}
-                  aria-pressed={active}
-                  className={`flex flex-col items-center gap-1 rounded-md px-1.5 py-2 text-[0.7rem] font-medium transition-colors ${
-                    active
-                      ? "bg-surface-raised text-foreground shadow-sm dark:bg-surface-raised"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  value={value}
+                  indicator={false}
+                  // Picking a theme is something you might do twice in a row to
+                  // compare, so the menu stays open.
+                  closeOnClick={false}
+                  className="flex-col justify-center gap-1 px-1.5 py-2 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:text-foreground data-checked:bg-surface-raised data-checked:text-foreground data-checked:shadow-sm"
                 >
                   <Icon />
                   {label}
-                </button>
-              );
-            })}
+                </DropdownMenuRadioItem>
+              ))}
+            </div>
           </div>
-        </div>
+        </DropdownMenuRadioGroup>
 
         <DropdownMenuSeparator />
 

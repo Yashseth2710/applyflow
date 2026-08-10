@@ -49,6 +49,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-ink: var(--destructive-ink);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -156,6 +157,9 @@
   --logo-arrow-to: #f0abfc;
 
   --destructive: oklch(0.585 0.208 26);
+  /* The destructive button is text on a 10% wash of itself, which lands at
+     3.95:1. This is the same colour, dark enough to read on that wash. */
+  --destructive-ink: oklch(0.55 0.208 26);
 
   /* Feedback */
   --success: oklch(0.62 0.152 152);
@@ -170,6 +174,14 @@
   --info: oklch(0.60 0.148 252);
   --info-foreground: oklch(0.99 0.01 250);
   --info-subtle: oklch(0.958 0.030 252);
+
+  /* Ink variants, for the same reason as the stage colours: these are pitched
+     as fills and badge borders, and as text on their own tint they read
+     between 2.1:1 and 3.5:1. */
+  --success-ink: oklch(0.485 0.152 152);
+  --warning-ink: oklch(0.525 0.148 68);
+  --danger-ink: oklch(0.520 0.208 26);
+  --info-ink: oklch(0.505 0.148 252);
 
   /* Pipeline: cool (early) -> warm (interviewing) -> green (won).
      Held at a similar lightness so no single column dominates the board.
@@ -188,6 +200,26 @@
   --stage-rejected: oklch(0.60 0.180 26);
   --stage-withdrawn: oklch(0.58 0.020 262);
   --stage-onhold: oklch(0.66 0.075 88);
+
+  /* The same hues, dark enough to read as 12px text on their own tint.
+     A fill and a letterform have different jobs: a bar only has to be
+     distinguishable, but text has to clear 4.5:1, and the colours above miss
+     it by a wide margin in light mode — between 2.6 and 3.5:1. Darkening the
+     fills instead would have muted every chart and dot on the site, so the
+     ink is a separate token and the fills stay exactly as designed.
+     Each value is the lightest that clears 4.6:1 on the tint it sits on. */
+  --stage-wishlist-ink: oklch(0.510 0.022 250);
+  --stage-applied-ink: oklch(0.505 0.140 248);
+  --stage-assessment-ink: oklch(0.485 0.130 218);
+  --stage-phone-ink: oklch(0.485 0.115 195);
+  --stage-technical-ink: oklch(0.520 0.150 52);
+  --stage-hr-ink: oklch(0.520 0.145 72);
+  --stage-final-ink: oklch(0.510 0.140 108);
+  --stage-offer-ink: oklch(0.480 0.155 155);
+  --stage-accepted-ink: oklch(0.475 0.145 162);
+  --stage-rejected-ink: oklch(0.520 0.180 26);
+  --stage-withdrawn-ink: oklch(0.505 0.020 262);
+  --stage-onhold-ink: oklch(0.515 0.075 88);
 
   /* Charts reuse pipeline hues so the dashboard and the board agree visually. */
   --chart-1: oklch(0.60 0.140 248);
@@ -252,6 +284,7 @@
   --logo-arrow-to: #f5d0fe;
 
   --destructive: oklch(0.68 0.185 24);
+  --destructive-ink: var(--destructive);
 
   --success: oklch(0.72 0.150 154);
   --success-foreground: oklch(0.16 0.04 155);
@@ -266,6 +299,13 @@
   --info-foreground: oklch(0.16 0.04 252);
   --info-subtle: oklch(0.30 0.058 254);
 
+  /* Already legible on a dark ground; aliased so a component never has to
+     know which theme it is in. */
+  --success-ink: var(--success);
+  --warning-ink: var(--warning);
+  --danger-ink: var(--danger);
+  --info-ink: var(--info);
+
   --stage-wishlist: oklch(0.70 0.024 250);
   --stage-applied: oklch(0.70 0.130 250);
   --stage-assessment: oklch(0.72 0.115 218);
@@ -278,6 +318,22 @@
   --stage-rejected: oklch(0.69 0.165 26);
   --stage-withdrawn: oklch(0.66 0.022 262);
   --stage-onhold: oklch(0.76 0.070 88);
+
+  /* On a dark ground the fills are already light enough to read as text —
+     4.6:1 at worst, on the tightest one. The tokens exist so a badge does not
+     have to know which theme it is in; they are simply the same values. */
+  --stage-wishlist-ink: var(--stage-wishlist);
+  --stage-applied-ink: var(--stage-applied);
+  --stage-assessment-ink: var(--stage-assessment);
+  --stage-phone-ink: var(--stage-phone);
+  --stage-technical-ink: var(--stage-technical);
+  --stage-hr-ink: var(--stage-hr);
+  --stage-final-ink: var(--stage-final);
+  --stage-offer-ink: var(--stage-offer);
+  --stage-accepted-ink: var(--stage-accepted);
+  --stage-rejected-ink: var(--stage-rejected);
+  --stage-withdrawn-ink: var(--stage-withdrawn);
+  --stage-onhold-ink: var(--stage-onhold);
 
   --chart-1: oklch(0.70 0.130 250);
   --chart-2: oklch(0.72 0.115 218);

@@ -98,8 +98,10 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      # No --passWithNoTests: there are tests now, and a run that finds none
+      # means they stopped being picked up, which should fail rather than pass.
       - name: Unit tests
-        run: npx vitest run --passWithNoTests
+        run: npx vitest run
 
       - name: Build
         run: npm run build

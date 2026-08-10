@@ -24,7 +24,7 @@ the job to signing the offer.
 
 | Layer     | Choice |
 |-----------|--------|
-| Frontend  | Next.js 16 (App Router), TypeScript, Tailwind, shadcn/ui |
+| Frontend  | Next.js 16 (App Router), TypeScript, Tailwind, shadcn/ui on Base UI |
 | State     | TanStack Query |
 | Forms     | React Hook Form + Zod |
 | Charts    | Recharts |
@@ -32,9 +32,10 @@ the job to signing the offer.
 | ORM       | SQLAlchemy 2.0 + Alembic |
 | Database  | PostgreSQL 18 (Neon) |
 | Auth      | JWT — in-memory access token + httpOnly refresh cookie |
-| AI        | Provider abstraction — `mock` / `ollama` (llama3.2:3b) |
-| Testing   | pytest, Vitest, Playwright |
-| Hosting   | Vercel (frontend), Render (backend), Neon (database) |
+| Storage   | Uploaded files in Postgres — the free host wipes its disk on deploy |
+| AI        | Provider abstraction — `mock` / `ollama` (local only) / `gemini` |
+| Testing   | pytest, Vitest + Testing Library, axe-core for accessibility |
+| Hosting   | Vercel (frontend), Render (backend), Neon (database) — not yet deployed |
 
 ---
 
@@ -149,8 +150,7 @@ npm run dev
 npm run build
 npm run lint
 npx tsc --noEmit            # type check
-npx vitest                  # unit tests
-npx playwright test         # e2e
+npx vitest                  # unit tests, including the accessibility audit
 ```
 
 ---
@@ -164,8 +164,13 @@ Never commit `.env`. `.gitignore` blocks it; `.env.example` documents what is ne
 | `DATABASE_URL` | Postgres connection string (needs `?sslmode=require` on Neon) |
 | `JWT_SECRET` | Signing key — generate with `python -c "import secrets; print(secrets.token_urlsafe(64))"` |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins |
-| `AI_PROVIDER` | `mock` or `ollama` |
+| `AI_PROVIDER` | `mock`, `ollama` or `gemini`. Defaults to `mock`, so nothing calls out unless asked |
+| `GEMINI_API_KEY` | Only needed when `AI_PROVIDER=gemini` |
+| `STORAGE_BACKEND` | `postgres` (default) or `local`. Local disk does not survive a deploy on the free tier |
 | `DEFAULT_TIMEZONE` | Fallback when a user's timezone can't be detected |
+
+`.env.example` lists every variable, including the ones with sensible defaults
+that are not worth setting by hand.
 
 ---
 

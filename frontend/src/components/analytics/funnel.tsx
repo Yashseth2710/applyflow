@@ -55,7 +55,12 @@ export function Funnel({ steps }: { steps: FunnelStep[] }) {
                   </span>
                 </div>
 
-                <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-muted">
+                {/* The count and rate above already say this; the bar is a
+                    picture of the same number. */}
+                <div
+                  className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-muted"
+                  aria-hidden
+                >
                   <div
                     className="h-full rounded-full transition-[width] duration-500"
                     style={{

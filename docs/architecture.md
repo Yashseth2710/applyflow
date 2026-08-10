@@ -28,10 +28,11 @@
                          │       │
               ┌──────────┘       └──────────┐
               ▼                             ▼
-   ┌────────────────────┐        ┌────────────────────┐
-   │ PostgreSQL (Neon)  │        │  AI Provider       │
-   │ SQLAlchemy+Alembic │        │  mock | ollama     │
-   └────────────────────┘        └────────────────────┘
+   ┌────────────────────┐        ┌──────────────────────┐
+   │ PostgreSQL (Neon)  │        │  AI Provider         │
+   │ SQLAlchemy+Alembic │        │  mock | ollama |     │
+   │ rows + file bytes  │        │  gemini              │
+   └────────────────────┘        └──────────────────────┘
 ```
 
 ## Layering
@@ -129,6 +130,58 @@ The funnel is cumulative — reaching the offer stage counts towards every earli
 rung — because people log the interview they got without ever ticking "assessment",
 and a funnel that widens further down looks broken.
 
+### 7. Uploaded files live in the database
+
+A `Storage` interface with two implementations: `LocalStorage` writes to disk for
+poking at files by hand, `PostgresStorage` writes bytes to the `stored_files`
+table. `STORAGE_BACKEND` selects one; the default is Postgres.
+
+**Why:** Render's free tier gives an ephemeral filesystem — every deploy and
+every idle restart wipes it. A resume uploaded on Monday would be a broken
+download on Tuesday, with the row still there insisting the file exists.
+
+The database backend shares the caller's session deliberately, so a file and the
+row describing it commit or roll back together and neither can outlive the
+other. It also means deletes must be issued *before* the commit: a delete after
+committing would open a second transaction that nothing ever commits, leaving
+the bytes behind after the row that described them is gone.
+
+Object storage (S3, R2) would be the normal answer and remains the upgrade path —
+the interface exists so that is one new class. It was rejected here only because
+every free tier needed a credit card.
+
+### 8. Accessibility: axe in CI, contrast by eye
+
+`axe-core` runs inside the Vitest suite over the components a keyboard or screen
+reader user actually meets — forms, the account menu, the analytics panels, the
+upload zone. It runs on every push.
+
+**What it deliberately does not check: colour contrast.** jsdom has no layout
+engine, so nothing has a size and `var(--foreground)` never resolves to a
+colour. Left enabled, the rule reports every element as "incomplete" — noise
+that looks like coverage. The rule is disabled with that reason written next to
+it in `src/test/axe.ts`.
+
+Contrast is instead measured by loading the real pages in a browser and running
+axe there. That pass is manual, because doing it in CI means booting the API,
+the database and the frontend for every push, and the free tier does not stretch
+to it.
+
+It is worth being blunt about which one has actually caught things. The jsdom
+suite found two structural bugs: theme buttons inside a `role="menu"`, which is
+markup a menu may not contain and which the menu's own arrow-key handling
+skipped entirely; and form errors that had ids but nothing pointing at them, so
+a screen reader said "invalid" and never said why. The browser pass found five
+contrast failures the jsdom suite is structurally incapable of seeing.
+
+**Fills and text are separate tokens.** The stage colours are pitched to look
+right as bars, dots and chart series. As 12px text on their own 16% tint they
+land between 2.6:1 and 3.5:1 in light mode. Darkening the colours themselves
+would have muted every chart on the site, so each has an `-ink` variant — the
+same hue and chroma, dark enough to read — and only text uses it. On a dark
+ground the fills already clear 4.5:1, so there the ink tokens simply alias them
+and a component never has to know which theme it is in.
+
 ---
 
 ## AI provider abstraction
@@ -180,10 +233,10 @@ mode breaks Alembic migrations and psycopg3 prepared statements.
 | Passwords | Argon2id |
 | Tokens | Short-lived access + rotating refresh; secret from env |
 | Authorization | Every query scoped by `user_id`; ownership checked before mutation |
-| SQL injection | SQLAlchemy parameterisation only, no string-built SQL |
+| SQL injection | Bound parameters everywhere. The analytics aggregates are hand-written SQL, but every value — `user_id` included — is a bind parameter, never interpolated |
 | CORS | Explicit origin list, credentials enabled |
-| Uploads | PDF only, size-capped, content-type verified, stored outside the repo |
-| Rate limiting | slowapi on auth and AI endpoints |
+| Uploads | PDF only, size-capped, content-type verified, stored as rows in the database rather than on disk |
+| Rate limiting | **Not implemented.** `slowapi` is a declared dependency but nothing imports it. Needed before the app is public |
 | Secrets | Env vars only; `.env` gitignored and verified |
 | Errors | Generic messages to clients; details logged server-side |
 

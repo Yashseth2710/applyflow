@@ -68,7 +68,11 @@ The probe runs a real `SELECT 1`.
 
 ---
 
-## Planned surface
+## Surface
+
+Everything below is built and covered by tests, except the section explicitly
+marked *not built*. The generated OpenAPI document at `/docs` is the source of
+truth; this page is the shape of it.
 
 ### Auth
 ```
@@ -79,7 +83,8 @@ POST   /auth/logout          clear the refresh cookie
 GET    /auth/me              current user
 ```
 
-### Users
+### Users — not built
+
 ```
 GET    /users/me/profile
 PATCH  /users/me/profile
@@ -89,57 +94,79 @@ DELETE /users/me/skills/{id}
 DELETE /users/me                 delete account and all data
 ```
 
+None of these exist yet. The profile is returned nested inside `GET /auth/me`
+and can only be set at registration, so there is no way to change a timezone or
+delete an account from the app. Worth closing before the app is public.
+
 ### Applications
 ```
-GET    /applications             ?status= &search= &source= &work_mode= &sort= &page=
+GET    /applications             ?status= &search= &source= &work_mode=
+                                 &sort_by= &order= &page= &page_size=
 POST   /applications
 GET    /applications/{id}
 PATCH  /applications/{id}
 DELETE /applications/{id}
 PATCH  /applications/{id}/status  status change + history entry
 GET    /applications/board        grouped by status, for the Kanban view
+GET    /applications/sources      distinct sources used so far, for autocomplete
 ```
 
-### Resumes (planned)
+### Resumes
 ```
 GET    /resumes
 POST   /resumes                   multipart, PDF only, size-capped
+GET    /resumes/limits            max size and accepted types
 GET    /resumes/{id}
-GET    /resumes/{id}/download     short-lived signed access
-DELETE /resumes/{id}
+PATCH  /resumes/{id}              title and notes
+DELETE /resumes/{id}              deletes one version, not the family
+GET    /resumes/{id}/download
+GET    /resumes/{id}/text         what the AI features read
+GET    /resumes/{id}/versions
+GET    /resumes/{id}/usage        how many applications point at this file
+POST   /resumes/{id}/set-current
 ```
 
-### Interviews and reminders (planned)
+Each version is its own row sharing a `family_id`, because an application
+records the exact file that was sent and so has to point at one version.
+
+### Interviews and reminders
 ```
-GET    /interviews                ?upcoming=true
+GET    /interviews                ?application_id=
 POST   /interviews
+GET    /interviews/upcoming       ?limit=
+GET    /interviews/reminders
+GET    /interviews/{id}
 PATCH  /interviews/{id}
 DELETE /interviews/{id}
-
-GET    /reminders                 ?completed=false
-POST   /reminders
-PATCH  /reminders/{id}
-DELETE /reminders/{id}
-
-GET    /applications/{id}/notes
-POST   /applications/{id}/notes
 ```
 
-### AI (planned)
+There is no reminders table and no write endpoints for them. Reminders are
+derived from interviews and application dates on each request, so they cannot
+disagree with the data and nothing has to run on a schedule — which matters on
+a host with no scheduler.
 
-Rate limited. Every response is a validated schema, never raw model text.
-`provider` and `model` are echoed back so output is traceable.
+Per-application notes are not built. There is no notes field on an application
+and no endpoint for them.
+
+### AI
+
+Every response is a validated schema, never raw model text. `provider` and
+`model` are echoed back so output is traceable.
 
 ```
-POST   /ai/analyze-job            { job_description } | { application_id }
-POST   /ai/analyze-resume         { resume_id, job_description }
-POST   /ai/tailor-resume          { resume_id, job_description }
-POST   /ai/generate-cover-letter  { resume_id, application_id, tone? }
-POST   /ai/interview-questions    { application_id, types[] }
+GET    /ai/status                                  whether a provider is configured
+GET    /ai/applications/{id}                       everything generated so far
+POST   /ai/applications/{id}/{task}                generate, or return the stored answer
 ```
 
-`match_score` is ApplyFlow's own transparent skill-overlap metric. It is not an ATS
-score and is never described as one.
+`task` is one of `jd_analysis`, `resume_match`, `interview_questions`,
+`cover_letter`. Results are stored against the application and returned as-is on
+a repeat call; `?force=true` regenerates. Each result carries a `stale` flag,
+set by fingerprinting the job description and the attached resume, so editing
+either marks the old answer out of date rather than silently keeping it.
+
+`score` on a resume match is ApplyFlow's own transparent skill-overlap metric. It
+is not an ATS score and is never described as one.
 
 ### Analytics
 ```

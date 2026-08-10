@@ -127,9 +127,16 @@ function InterviewRow({ interview }: { interview: Interview }) {
           </p>
         </div>
 
+        {/* Tinted like a status badge rather than white on a solid fill. The
+            stage colours are mid-lightness, so white on top of them lands
+            around 3:1 in both themes — worst on the lightest stages, which is
+            where it looks most deliberate. */}
         <span
           className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium"
-          style={{ background: `var(${meta.token})`, color: "white" }}
+          style={{
+            background: `color-mix(in oklch, var(${meta.token}) 16%, transparent)`,
+            color: `var(${meta.token}-ink)`,
+          }}
         >
           {meta.label}
         </span>

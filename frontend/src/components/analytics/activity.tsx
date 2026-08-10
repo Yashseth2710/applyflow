@@ -25,6 +25,17 @@ export function Activity({ volume }: { volume: VolumePoint[] }) {
 
   const busiest = Math.max(...data.map((d) => Math.max(d.created, d.moved)), 0);
 
+  const added = data.reduce((sum, d) => sum + d.created, 0);
+  const moved = data.reduce((sum, d) => sum + d.moved, 0);
+  const peak = data.find((d) => d.created === busiest || d.moved === busiest);
+
+  // An SVG chart is nothing at all to a screen reader, so the same reading is
+  // offered as a sentence.
+  const spoken =
+    `Weekly activity over ${data.length} weeks: ${added} applications added ` +
+    `and ${moved} stage changes recorded` +
+    (peak ? `, busiest in the week of ${peak.label}.` : ".");
+
   return (
     <section className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -48,7 +59,7 @@ export function Activity({ volume }: { volume: VolumePoint[] }) {
           Nothing recorded in this window yet.
         </p>
       ) : (
-        <div className="mt-5 h-56 w-full">
+        <div className="mt-5 h-56 w-full" role="img" aria-label={spoken}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}

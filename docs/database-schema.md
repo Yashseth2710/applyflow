@@ -3,24 +3,30 @@
 PostgreSQL 18 (Neon). All timestamps are `TIMESTAMPTZ` stored in UTC.
 All primary keys are UUIDs. All user-owned tables carry `user_id` and are indexed on it.
 
+This describes the tables that exist. Anything planned but not built lives in
+`api-spec.md`, marked as such.
+
 ## Relationships
 
 ```
 users
- ├── profiles              (1:1)
- ├── resumes               (1:N)
- ├── user_skills           (1:N)
- └── applications          (1:N)
-      ├── interviews       (1:N)
-      ├── notes            (1:N)
-      ├── documents        (1:N)
-      ├── reminders        (1:N)
-      └── job_analyses     (1:N)
+ ├── profiles                        (1:1)
+ ├── resumes                         (1:N)
+ └── applications                    (1:N)
+      ├── interviews                 (1:N)
+      ├── application_status_history (1:N)
+      └── ai_outputs                 (1:N)
+
+stored_files                         file bytes, keyed by path, owned by a user
 ```
 
 Every child of `applications` also stores `user_id` directly. Denormalised on
 purpose: ownership checks become a single indexed predicate instead of a join,
 which makes it much harder to write an endpoint that leaks another user's data.
+
+There is no `reminders` table. Reminders are derived from interviews and
+application dates on each request, so nothing has to run on a schedule and a
+reminder cannot outlive the thing that caused it.
 
 ---
 
@@ -29,12 +35,16 @@ which makes it much harder to write an endpoint that leaks another user's data.
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
-| email | CITEXT | unique, case-insensitive |
-| password_hash | TEXT | Argon2id |
+| email | VARCHAR(320) | unique, indexed, lowercased before insert |
+| password_hash | VARCHAR(255) | Argon2id |
 | first_name | VARCHAR(100) | |
 | last_name | VARCHAR(100) | |
 | is_active | BOOLEAN | default true |
 | created_at / updated_at | TIMESTAMPTZ | |
+
+Deliberately not `CITEXT`: emails are normalised to lowercase in the schema
+layer, so a plain unique index does the same job without depending on an
+extension that would have to be installed identically on local, CI and Neon.
 
 ## profiles
 
@@ -43,12 +53,16 @@ which makes it much harder to write an endpoint that leaks another user's data.
 | id | UUID | PK |
 | user_id | UUID | FK → users, unique, cascade delete |
 | phone | VARCHAR(30) | |
-| linkedin_url / github_url / portfolio_url | TEXT | |
 | location | VARCHAR(200) | |
+| linkedin_url / github_url / portfolio_url | TEXT | |
 | timezone | VARCHAR(64) | IANA name, e.g. `Asia/Kolkata` |
 | career_level | ENUM | student, entry, mid, senior, lead |
-| summary | TEXT | feeds AI context |
 | years_experience | SMALLINT | |
+| summary | TEXT | feeds AI context |
+| created_at / updated_at | TIMESTAMPTZ | |
+
+Every field is written at registration and there is currently no endpoint to
+change any of them afterwards.
 
 ## applications
 
@@ -58,165 +72,153 @@ The central table.
 |--------|------|-------|
 | id | UUID | PK |
 | user_id | UUID | FK → users, cascade, indexed |
-| company_name | VARCHAR(200) | not null — stored inline, see ADR 1 |
+| company_name | VARCHAR(200) | inline, not a shared companies table |
 | company_website | TEXT | |
-| job_title | VARCHAR(200) | not null |
-| job_description | TEXT | |
+| job_title | VARCHAR(200) | |
+| job_description | TEXT | what the AI features read |
 | job_url | TEXT | |
 | location | VARCHAR(200) | |
 | work_mode | ENUM | onsite, hybrid, remote |
 | employment_type | ENUM | full_time, part_time, contract, internship |
-| salary_min / salary_max | INTEGER | |
-| salary_currency | CHAR(3) | default `INR` |
+| salary_min / salary_max | INTEGER | check constraint: min ≤ max |
+| salary_currency | VARCHAR(3) | default `INR` |
 | status | ENUM | see below |
-| source | VARCHAR(100) | LinkedIn, referral, careers page… — drives "what's working" analytics |
-| resume_id | UUID | FK → resumes, nullable, `ON DELETE SET NULL` |
+| source | VARCHAR(100) | free text — a fixed list just makes people pick "other" |
+| resume_id | UUID | FK → resumes, **SET NULL** so deleting a resume keeps the application |
 | date_posted | DATE | |
 | date_applied | TIMESTAMPTZ | |
-| position | INTEGER | ordering within a Kanban column |
+| position | INTEGER | ordering within a board column, sparse so a drag rewrites one row |
 | created_at / updated_at | TIMESTAMPTZ | |
 
-Indexes: `(user_id, status)`, `(user_id, created_at DESC)`, GIN full-text on
-`company_name || job_title`.
+Indexed on `(user_id, status)`, `(user_id, created_at)` and
+`(user_id, status, position)`.
 
 ### status enum
 
-```
-wishlist → applied → assessment → phone_screen → technical_interview
-        → hr_interview → final_interview → offer → accepted
-```
-Terminal: `rejected`, `withdrawn`, `on_hold`
+`wishlist`, `applied`, `assessment`, `phone_screen`, `technical_interview`,
+`hr_interview`, `final_interview`, `offer`, `accepted`, `rejected`,
+`withdrawn`, `on_hold`.
 
-Status is a plain column, not a state machine — real job searches skip stages and
-move backwards.
+Not a state machine. Real job searches skip stages, go backwards, and revive
+dead applications, so any transition is allowed and history records it.
 
 ## application_status_history
 
-Append-only. Written on every status change; powers conversion analytics and
-time-in-stage metrics.
+Append-only log of stage changes. Conversion rates and time-in-stage need the
+journey, not just the current status, and it cannot be reconstructed later — so
+it is written from the first day.
 
-| Column | Type |
-|--------|------|
-| id | UUID PK |
-| application_id | UUID FK, cascade |
-| user_id | UUID FK |
-| from_status / to_status | ENUM (from nullable on create) |
-| changed_at | TIMESTAMPTZ |
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| application_id | UUID | FK → applications, cascade, indexed |
+| user_id | UUID | FK → users, cascade, indexed |
+| from_status | ENUM | NULL on the first entry, which records the status at creation |
+| to_status | ENUM | |
+| changed_at | TIMESTAMPTZ | indexed |
+
+Everything on the analytics page is derived from this table.
 
 ## resumes
 
+One row per **version**. Versions of the same document share a `family_id`.
+
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
-| user_id | UUID | FK, cascade |
-| name | VARCHAR(200) | e.g. "Backend Developer Resume" |
-| version | VARCHAR(50) | user-supplied label |
-| file_path | TEXT | storage key, never a public URL |
-| file_size | INTEGER | bytes |
-| mime_type | VARCHAR(100) | `application/pdf` only for now |
-| extracted_text | TEXT | cached pypdf output — avoids re-parsing on every AI call |
-| is_default | BOOLEAN | |
+| user_id | UUID | FK → users, cascade, indexed |
+| family_id | UUID | groups versions of the same resume |
+| version | INTEGER | 1, 2, 3 … within a family |
+| is_current | BOOLEAN | one per family |
+| title | VARCHAR(200) | |
+| notes | TEXT | what this version is tuned for |
+| original_filename | VARCHAR(255) | |
+| content_type | VARCHAR(100) | |
+| size_bytes | INTEGER | |
+| content_hash | VARCHAR(64) | SHA-256, detects a re-upload of the same file |
+| storage_key | VARCHAR(500) | key into `stored_files`, not a filesystem path |
+| extraction_status | ENUM | pending, ok, empty, failed |
+| extracted_text | TEXT | what the AI features read |
+| extraction_error | TEXT | shown to the user when the PDF is unreadable |
+| created_at / updated_at | TIMESTAMPTZ | |
+
+An application records the exact file that was sent, so it points at one
+version — which is why versions need their own ids rather than a separate
+versions table.
+
+`empty` is a distinct status from `failed`: a scanned resume parses fine and
+yields no text, and saying so is more useful than showing a blank page.
 
 ## interviews
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| application_id | UUID | FK, cascade |
-| user_id | UUID | FK, indexed |
-| round_name | VARCHAR(200) | "Technical Round 1" |
-| interview_type | ENUM | phone_screen, technical, behavioural, hr, system_design, final |
-| scheduled_at | TIMESTAMPTZ | UTC |
-| timezone | VARCHAR(64) | **optional** display override — the interviewer's zone |
-| duration_minutes | SMALLINT | |
-| interviewer_name / interviewer_role | VARCHAR(200) | |
-| meeting_url | TEXT | |
-| notes | TEXT | |
-| result | ENUM | pending, passed, failed, cancelled |
-| feedback | TEXT | |
-
-## reminders
+Finer-grained than `applications.status` on purpose — an application sits in one
+stage, but a stage can contain several interviews.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
-| user_id | UUID | FK, cascade |
-| application_id | UUID | FK, nullable, cascade |
-| title | VARCHAR(200) | |
-| description | TEXT | |
-| remind_at | TIMESTAMPTZ | |
-| completed | BOOLEAN | |
-| completed_at | TIMESTAMPTZ | |
+| application_id | UUID | FK → applications, cascade, indexed |
+| user_id | UUID | FK → users, cascade, indexed |
+| round | ENUM | phone_screen, technical, take_home, system_design, hr, managerial, final, other |
+| mode | ENUM | onsite, video, phone |
+| scheduled_at | TIMESTAMPTZ | rejected if it arrives without an offset |
+| duration_minutes | INTEGER | |
+| location | TEXT | address, or the meeting link |
+| interviewer | VARCHAR(200) | |
+| notes / feedback | TEXT | |
+| outcome | ENUM | pending, passed, failed, cancelled |
+| created_at / updated_at | TIMESTAMPTZ | |
 
-Index `(user_id, completed, remind_at)` — serves the dashboard's "upcoming" query.
-MVP reminders are in-app: a filtered query, no background worker.
+`pending` covers both "hasn't happened yet" and "happened, still waiting" — the
+scheduled time separates the two without a second column.
 
-## notes
+## ai_outputs
 
-| Column | Type |
-|--------|------|
-| id | UUID PK |
-| application_id | UUID FK, cascade |
-| user_id | UUID FK |
-| content | TEXT |
-| created_at / updated_at | TIMESTAMPTZ |
-
-## documents
+One row per application per task. Generations are cached because they cost money
+and take seconds.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
-| application_id | UUID | FK, cascade |
-| user_id | UUID | FK |
-| name | VARCHAR(200) | |
-| file_path | TEXT | |
-| file_size | INTEGER | |
-| mime_type | VARCHAR(100) | |
-| document_type | ENUM | cover_letter, offer_letter, assignment, other |
+| application_id | UUID | FK → applications, cascade |
+| user_id | UUID | FK → users, cascade |
+| task | ENUM | jd_analysis, resume_match, interview_questions, cover_letter |
+| content | JSONB | structured answers |
+| text | TEXT | used by cover_letter, which is prose rather than fields |
+| input_hash | VARCHAR(64) | fingerprint of the job description and attached resume |
+| model / provider | VARCHAR | echoed back so an answer is traceable |
+| generated_at | TIMESTAMPTZ | |
+| created_at / updated_at | TIMESTAMPTZ | |
 
-## user_skills
+`input_hash` is what makes an answer go stale: editing the job description or
+swapping the resume changes the hash, and the UI flags the stored answer as
+describing older text instead of silently keeping it.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| user_id | UUID | FK, cascade |
-| name | VARCHAR(100) | normalised lowercase for matching |
-| proficiency | ENUM | beginner, intermediate, advanced, expert |
-| years | SMALLINT | |
+## stored_files
 
-Unique on `(user_id, name)`.
-
-## job_analyses
-
-Cached AI output, so re-opening an application doesn't re-run the model.
+Uploaded bytes, addressed by key.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| id | UUID | PK |
-| application_id | UUID | FK, cascade |
-| user_id | UUID | FK |
-| required_skills | JSONB | |
-| preferred_skills | JSONB | |
-| responsibilities | JSONB | |
-| experience_required | VARCHAR(100) | |
-| summary | TEXT | |
-| match_score | SMALLINT | 0–100, computed against `user_skills` |
-| matched / partial / missing_skills | JSONB | |
-| provider | VARCHAR(50) | `mock` / `ollama` — which produced this |
-| model | VARCHAR(100) | e.g. `llama3.2:3b` |
-| source_hash | CHAR(64) | SHA-256 of the JD; re-analyse only when it changes |
+| key | VARCHAR(500) | PK |
+| owner_id | UUID | FK → users, cascade |
+| content | BYTEA | the file itself |
+| size_bytes | BIGINT | |
 | created_at | TIMESTAMPTZ | |
 
-`match_score` is ApplyFlow's own transparent metric, computed from skill overlap.
-It is **not** an ATS score and must never be presented as one.
+Files live in the database rather than on disk because the free host wipes its
+filesystem on every deploy. Writes go through the same session as the row that
+describes them, so a file and its metadata commit or roll back together and
+neither can outlive the other.
 
 ---
 
 ## Conventions
 
-- UUID PKs — safe to expose in URLs, no enumeration
-- `ON DELETE CASCADE` from `users` down, so account deletion is complete (privacy requirement)
-- `resume_id` uses `SET NULL` — deleting a resume must not delete application history
-- Enums as native PG types, migrated via Alembic
-- `updated_at` maintained by SQLAlchemy `onupdate`
-- No soft deletes in the MVP
+- Enums are native Postgres types, so the database rejects invalid states rather
+  than trusting the application. Adding a value needs a migration.
+- Enum columns store the *value* (`full_time`), not the Python member name.
+- `ondelete` is chosen per relationship, not by habit: `CASCADE` where the child
+  is meaningless alone, `SET NULL` where history must survive
+  (`applications.resume_id`).
+- Every schema change is an Alembic migration; none are applied by hand.
