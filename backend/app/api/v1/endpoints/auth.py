@@ -13,7 +13,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_storage
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.rate_limit import (
@@ -23,6 +23,7 @@ from app.core.rate_limit import (
     client_ip,
     limiter,
 )
+from app.core.storage import Storage
 from app.models.user import User
 from app.schemas.auth import (
     AuthResponse,
@@ -39,6 +40,7 @@ from app.services.auth import (
     InvalidRefreshToken,
 )
 from app.services.rate_events import DurableLimiter, TooManyAttempts, register_bucket
+from app.services.user import UserService
 
 router = APIRouter()
 
@@ -84,7 +86,7 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
     )
 
 
-def _clear_refresh_cookie(response: Response) -> None:
+def clear_session_cookies(response: Response) -> None:
     response.delete_cookie(
         key=REFRESH_COOKIE_NAME,
         path=REFRESH_COOKIE_PATH,
@@ -106,6 +108,15 @@ def _token_response(access_token: str) -> TokenResponse:
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
+
+
+def _user_with_avatar(user: User, db: Session, storage: Storage) -> UserResponse:
+    """The picture is read from storage, so it cannot come from the model on
+    its own. Signing in has to include it or the header shows initials until
+    something else refreshes the session."""
+    response = UserResponse.model_validate(user)
+    response.avatar = UserService(db, storage).avatar_data_uri(user)
+    return response
 
 
 @router.post(
@@ -174,6 +185,7 @@ def login(
     payload: LoginRequest,
     response: Response,
     db: Session = Depends(get_db),
+    storage: Storage = Depends(get_storage),
 ) -> AuthResponse:
     service = AuthService(db)
     try:
@@ -203,7 +215,7 @@ def login(
     _set_refresh_cookie(response, refresh_token)
 
     return AuthResponse(
-        user=UserResponse.model_validate(user),
+        user=_user_with_avatar(user, db, storage),
         token=_token_response(access_token),
     )
 
@@ -231,13 +243,13 @@ def refresh(
         user = service.user_from_refresh_token(applyflow_refresh)
     except InvalidRefreshToken as exc:
         # Clear the bad cookie so the browser stops resending it.
-        _clear_refresh_cookie(response)
+        clear_session_cookies(response)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session",
         ) from exc
     except AccountDisabled as exc:
-        _clear_refresh_cookie(response)
+        clear_session_cookies(response)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled",
@@ -253,9 +265,13 @@ def refresh(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, summary="Log out")
 def logout(response: Response) -> None:
-    _clear_refresh_cookie(response)
+    clear_session_cookies(response)
 
 
 @router.get("/me", response_model=UserResponse, summary="Current user")
-def me(current_user: User = Depends(get_current_user)) -> UserResponse:
-    return UserResponse.model_validate(current_user)
+def me(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    storage: Storage = Depends(get_storage),
+) -> UserResponse:
+    return _user_with_avatar(current_user, db, storage)

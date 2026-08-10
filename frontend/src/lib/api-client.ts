@@ -166,13 +166,27 @@ export const api = {
       body: data === undefined ? undefined : JSON.stringify(data),
     }),
 
-  delete: <T>(path: string, opts?: RequestOptions) =>
-    request<T>(path, { ...opts, method: "DELETE" }),
+  // Takes an optional body. Deleting an account asks for the password, and
+  // putting that in the query string would write it into every access log
+  // between here and the server.
+  delete: <T>(path: string, data?: unknown, opts?: RequestOptions) =>
+    request<T>(path, {
+      ...opts,
+      method: "DELETE",
+      body: data === undefined ? undefined : JSON.stringify(data),
+    }),
 
   // Longer timeout than the default: uploads carry megabytes, and the server
   // parses the file before it answers.
   upload: <T>(path: string, form: FormData, opts?: RequestOptions) =>
-    request<T>(path, { timeoutMs: 120_000, ...opts, method: "POST", body: form }),
+    request<T>(path, {
+      timeoutMs: 120_000,
+      ...opts,
+      // Overridable, because an avatar is a PUT: there is one per account, and
+      // sending a second replaces the first rather than adding to a list.
+      method: opts?.method ?? "POST",
+      body: form,
+    }),
 
   /** For file bodies. The caller reads the Response itself. */
   raw: (path: string, opts?: RequestOptions) =>

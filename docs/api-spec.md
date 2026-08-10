@@ -83,20 +83,40 @@ POST   /auth/logout          clear the refresh cookie
 GET    /auth/me              current user
 ```
 
-### Users — not built
+### Users
 
 ```
-GET    /users/me/profile
-PATCH  /users/me/profile
-GET    /users/me/skills
-POST   /users/me/skills
-DELETE /users/me/skills/{id}
-DELETE /users/me                 delete account and all data
+GET    /users/me                 account and profile
+PATCH  /users/me                 name and profile fields
+PUT    /users/me/avatar          multipart image, returns the updated user
+DELETE /users/me/avatar          back to initials
+POST   /users/me/password        current + new, 204
+DELETE /users/me                 delete the account and everything in it, 204
 ```
 
-None of these exist yet. The profile is returned nested inside `GET /auth/me`
-and can only be set at registration, so there is no way to change a timezone or
-delete an account from the app. Worth closing before the app is public.
+`PATCH /users/me` covers the name and every profile field in one call, because
+on screen they are one form and a half-saved form is worse than a slow one.
+**Email is not editable** — changing it needs a verify-the-new-address flow and
+somewhere to send mail from, and accepting an address without proving it is
+reachable would lock people out of their own accounts. The schema forbids
+unknown fields, so sending `email` is a 422 rather than a silent no-op.
+
+`PUT /users/me/avatar` re-encodes whatever arrives to a 256px square WebP. That
+strips EXIF, which on a phone photo carries the coordinates it was taken at,
+and decoding is the only real check that a file is an image. JPEG, PNG, WebP
+and GIF only — **no SVG**, which is a document that can carry script. 422 on
+anything unreadable.
+
+The picture comes back **inlined as a data URI** on the `avatar` field of every
+user response, not as a URL: the access token lives in memory and travels as a
+header, so a plain `<img src>` would arrive unauthenticated and get a 401.
+
+`POST /users/me/password` and `DELETE /users/me` both require the current
+password on top of a valid session — 403 without it. An unattended laptop
+should not be enough to take an account permanently or destroy it.
+
+There is no `/users/me/skills`. There is no skills table; that is a separate
+feature, not a missing endpoint.
 
 ### Applications
 ```

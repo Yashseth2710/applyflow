@@ -29,6 +29,10 @@ import { StatusBadge } from "@/components/applications/status-badge";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { UserMenu } from "@/components/layout/user-menu";
 import { UploadDropzone } from "@/components/resumes/upload-dropzone";
+import { AvatarField } from "@/components/settings/avatar-field";
+import { DangerZone } from "@/components/settings/danger-zone";
+import { PasswordForm } from "@/components/settings/password-form";
+import { ProfileForm } from "@/components/settings/profile-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,6 +73,8 @@ vi.mock("@/lib/auth-context", () => ({
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
+    applyUser: vi.fn(),
+    forgetSession: vi.fn(),
   }),
 }));
 
@@ -312,6 +318,54 @@ describe("accessibility", () => {
         <AIPanel applicationId="0b6f2c1e-0000-4000-8000-000000000002" />,
       );
       await expectNoAxeViolations(container);
+    });
+  });
+
+  describe("settings", () => {
+    it("profile form", async () => {
+      const { container } = renderWithProviders(<ProfileForm />);
+      await expectNoAxeViolations(container);
+    });
+
+    it("the file input is not a second, unlabelled control", async () => {
+      // A file input is announced as a button. Left in the accessibility tree
+      // it sits beside the real one as a duplicate with a confusing name, and
+      // the visible button is what opens it for mouse and keyboard alike.
+      renderWithProviders(<AvatarField />);
+
+      const buttons = screen.getAllByRole("button").map((b) => b.textContent);
+      expect(buttons).toEqual(["Upload a picture"]);
+    });
+
+    it("password form", async () => {
+      const { container } = renderWithProviders(<PasswordForm />);
+      await expectNoAxeViolations(container);
+    });
+
+    it("danger zone", async () => {
+      const { container } = renderWithProviders(<DangerZone />);
+      await expectNoAxeViolations(container);
+    });
+
+    it("the delete dialog, open", async () => {
+      renderWithProviders(<DangerZone />);
+      await userEvent.click(screen.getByRole("button", { name: "Delete my account" }));
+      await screen.findByRole("alertdialog");
+
+      // Portalled out of the container, so the audit runs against the document
+      // or it would pass without ever seeing the dialog.
+      await expectNoAxeViolations(document.body);
+    });
+
+    it("will not submit a deletion with no password", async () => {
+      // An empty confirm cannot delete anything, and sending it anyway would
+      // spend one of the account's own sign-in attempts for nothing.
+      renderWithProviders(<DangerZone />);
+      await userEvent.click(screen.getByRole("button", { name: "Delete my account" }));
+
+      expect(
+        await screen.findByRole("button", { name: "Delete permanently" }),
+      ).toBeDisabled();
     });
   });
 });

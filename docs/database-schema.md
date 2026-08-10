@@ -61,10 +61,17 @@ extension that would have to be installed identically on local, CI and Neon.
 | career_level | ENUM | student, entry, mid, senior, lead |
 | years_experience | SMALLINT | |
 | summary | TEXT | feeds AI context |
+| avatar_key | VARCHAR(500) | key into `stored_files`, not the bytes |
 | created_at / updated_at | TIMESTAMPTZ | |
 
-Every field is written at registration and there is currently no endpoint to
-change any of them afterwards.
+Written at registration and editable afterwards through `PATCH /users/me`.
+
+`avatar_key` points at a row in `stored_files` rather than holding the image, so
+the picture goes through the same storage as resumes and survives a redeploy on
+a host with an ephemeral filesystem. A new key is written on every upload —
+reusing one would leave the old picture in any cache that had it. The bytes are
+always a 256px square WebP: whatever is uploaded is decoded and re-encoded,
+which strips EXIF and its GPS coordinates.
 
 ## applications
 

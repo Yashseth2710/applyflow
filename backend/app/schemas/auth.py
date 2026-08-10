@@ -99,6 +99,14 @@ class UserResponse(BaseModel):
     created_at: datetime
     profile: ProfileResponse | None = None
 
+    #: The profile picture, inlined as a data URI, or None when there is none
+    #: and the client should fall back to initials.
+    #:
+    #: Not a URL. The access token lives in memory and travels as a header, so
+    #: a plain `<img src>` would arrive unauthenticated and get a 401 — the
+    #: same trap already hit once with resume downloads.
+    avatar: str | None = None
+
 
 class AuthResponse(BaseModel):
     """Returned by register and login: the user plus their access token."""

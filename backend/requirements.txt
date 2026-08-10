@@ -21,6 +21,10 @@ argon2-cffi==23.1.0
 
 # File / document handling
 pypdf==5.1.0
+# Avatars are re-encoded rather than stored as uploaded. That strips EXIF —
+# which carries GPS coordinates on anything taken with a phone — and it means
+# what gets stored is definitely an image rather than whatever was claimed.
+Pillow==12.3.0
 
 # HTTP client (AI provider calls, Ollama)
 httpx==0.28.1

@@ -4,7 +4,8 @@ AI-powered job application management platform. Track every application, resume,
 interview, and reminder in one place — and use AI to analyse job descriptions,
 improve resume relevance, and prepare for interviews.
 
-Work in progress. Applications, resumes, interviews and analytics are being built out in that order.
+Work in progress. Applications, resumes, interviews, analytics and account
+settings are built; deployment is not.
 
 ---
 
@@ -33,6 +34,7 @@ the job to signing the offer.
 | Database  | PostgreSQL 18 (Neon) |
 | Auth      | JWT — in-memory access token + httpOnly refresh cookie |
 | Storage   | Uploaded files in Postgres — the free host wipes its disk on deploy |
+| Images    | Pillow — avatars are re-encoded, which strips EXIF and its GPS data |
 | AI        | Provider abstraction — `mock` / `ollama` (local only) / `gemini` |
 | Testing   | pytest, Vitest + Testing Library, axe-core for accessibility |
 | Hosting   | Vercel (frontend), Render (backend), Neon (database) — not yet deployed |

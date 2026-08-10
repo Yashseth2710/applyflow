@@ -22,6 +22,11 @@ export type RegisterPayload = Schemas["RegisterRequest"];
 export type LoginPayload = Schemas["LoginRequest"];
 export type CareerLevel = Schemas["CareerLevel"];
 
+// ---- account ----
+export type ProfileUpdate = Schemas["ProfileUpdate"];
+export type PasswordChange = Schemas["PasswordChange"];
+export type AccountDelete = Schemas["AccountDelete"];
+
 // ---- health ----
 export type HealthResponse = Schemas["HealthResponse"];
 export type DatabaseHealth = Schemas["DatabaseHealth"];

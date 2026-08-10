@@ -71,6 +71,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-warning-subtle: var(--warning-subtle);
   --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
   --color-danger-foreground: var(--danger-foreground);
   --color-danger-subtle: var(--danger-subtle);
   --color-info: var(--info);
@@ -157,9 +158,11 @@
   --logo-arrow-to: #f0abfc;
 
   --destructive: oklch(0.585 0.208 26);
-  /* The destructive button is text on a 10% wash of itself, which lands at
-     3.95:1. This is the same colour, dark enough to read on that wash. */
-  --destructive-ink: oklch(0.55 0.208 26);
+  /* The destructive button is text on a wash of itself, which lands at 3.95:1
+     on a plain card. Solved against the tinted danger section instead, which
+     is where the button that matters actually sits — that ground is pinker,
+     and a value that clears 4.5:1 on white misses it by a tenth there. */
+  --destructive-ink: oklch(0.535 0.208 26);
 
   /* Feedback */
   --success: oklch(0.62 0.152 152);
@@ -284,7 +287,9 @@
   --logo-arrow-to: #f5d0fe;
 
   --destructive: oklch(0.68 0.185 24);
-  --destructive-ink: var(--destructive);
+  /* Lighter than the fill here, for the same reason it is darker in light
+     mode: on the danger section's ground the fill itself reads 4.1:1. */
+  --destructive-ink: oklch(0.715 0.185 24);
 
   --success: oklch(0.72 0.150 154);
   --success-foreground: oklch(0.16 0.04 155);

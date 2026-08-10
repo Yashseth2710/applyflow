@@ -324,6 +324,52 @@ with rotation and reuse detection. Not built.
 `X-Content-Type-Options`, `X-Frame-Options` or CSP; nothing runs `pip-audit` or
 `npm audit` in CI.
 
+### 13. Profile pictures are re-encoded, never stored as uploaded
+
+Whatever arrives is decoded with Pillow, centre-cropped, resized to 256px and
+written back out as WebP. Two reasons.
+
+A photo taken on a phone carries EXIF, and EXIF routinely carries the exact
+coordinates it was taken at. Serving the original back publishes someone's home
+address alongside their face. Re-encoding drops every metadata block, because
+Pillow only writes what it is asked to write.
+
+And decoding is the only real check that a file is an image. A content type is
+a string the client chose and magic bytes are four characters anyone can
+prepend; if Pillow cannot open it, it is not a picture. SVG is refused outright
+rather than handled — it is a document that can contain script, and serving one
+back from our own origin is a stored cross-site scripting hole, not an avatar.
+
+**Served as a data URI inside the user response, not as a URL.** The access
+token lives in memory and travels as an `Authorization` header, so a plain
+`<img src>` arrives unauthenticated and gets a 401 — the same trap already hit
+once with resume downloads. At 256px WebP the inlined picture is around 7 KB on
+a response the client already makes on every page load.
+
+The centre crop is deliberate: squashing a portrait into a square is the
+obvious shortcut and makes every face look wrong.
+
+### 14. One settings page, and email is not on it
+
+`/settings` is a single page — profile, career, links, preferences, security
+and the danger zone — reached from the account menu rather than the main nav,
+because it is somewhere you go occasionally and a sixth nav item would compete
+with the five you use daily.
+
+`PATCH /users/me` takes the name and every profile field together, because on
+screen they are one form and a form that can half-save is worse than a slow one.
+
+**Email is deliberately absent.** Changing it needs a verify-the-new-address
+flow and somewhere to send mail from; accepting a new address without proving
+it is reachable would lock people out of their own accounts. The field is shown
+read-only with that reason, rather than left out and wondered about.
+
+**Password change and account deletion both re-ask for the password**, on top
+of a valid session. Otherwise an unattended laptop is enough to take an account
+permanently or destroy it. Deletion cascades from `users` through every table
+including `stored_files`, and the row is removed rather than flagged — a soft
+delete would leave the address unusable for signing up again.
+
 ---
 
 ## AI provider abstraction

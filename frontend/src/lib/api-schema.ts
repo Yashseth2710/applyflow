@@ -112,6 +112,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in account */
+        get: operations["read_me_api_v1_users_me_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete the account
+         * @description Irreversible, and takes everything with it.
+         *
+         *     Every table cascades from `users`, including the stored file bytes, so one
+         *     delete removes the applications, resumes, interviews and generated answers
+         *     too. Nothing is retained.
+         */
+        delete: operations["delete_me_api_v1_users_me_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update name and profile
+         * @description One endpoint for the name and the profile fields, because on screen they
+         *     are one form and a half-saved form is worse than a slow one.
+         */
+        patch: operations["update_me_api_v1_users_me_patch"];
+        trace?: never;
+    };
+    "/api/v1/users/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the profile picture
+         * @description Whatever arrives is decoded and re-encoded to a 256px WebP.
+         *
+         *     That strips EXIF, which on a phone photo carries the coordinates it was
+         *     taken at, and it is the only real check that the file is an image rather
+         *     than something claiming to be one.
+         */
+        put: operations["set_avatar_api_v1_users_me_avatar_put"];
+        post?: never;
+        /** Go back to initials */
+        delete: operations["clear_avatar_api_v1_users_me_avatar_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change the password
+         * @description Asks for the current password as well as a valid session — otherwise an
+         *     unattended laptop is a way to take the account permanently.
+         */
+        post: operations["change_password_api_v1_users_me_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications": {
         parameters: {
             query?: never;
@@ -604,6 +680,17 @@ export interface components {
          * @enum {string}
          */
         AITask: "jd_analysis" | "resume_match" | "cover_letter" | "interview_questions";
+        /**
+         * AccountDelete
+         * @description Deleting takes the password as well as the session.
+         *
+         *     It is irreversible and it takes everything, so an unattended laptop should
+         *     not be enough on its own.
+         */
+        AccountDelete: {
+            /** Password */
+            password: string;
+        };
         /** AnalyticsSummary */
         AnalyticsSummary: {
             /**
@@ -845,6 +932,14 @@ export interface components {
             columns: components["schemas"]["BoardColumn"][];
             /** Total */
             total: number;
+        };
+        /** Body_set_avatar_api_v1_users_me_avatar_put */
+        Body_set_avatar_api_v1_users_me_avatar_put: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
         };
         /** Body_upload_resume_api_v1_resumes_post */
         Body_upload_resume_api_v1_resumes_post: {
@@ -1188,6 +1283,13 @@ export interface components {
             /** Pages */
             pages: number;
         };
+        /** PasswordChange */
+        PasswordChange: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
         /** ProfileResponse */
         ProfileResponse: {
             /** Timezone */
@@ -1202,6 +1304,37 @@ export interface components {
             github_url?: string | null;
             /** Portfolio Url */
             portfolio_url?: string | null;
+            career_level?: components["schemas"]["CareerLevel"] | null;
+            /** Years Experience */
+            years_experience?: number | null;
+            /** Summary */
+            summary?: string | null;
+        };
+        /**
+         * ProfileUpdate
+         * @description PATCH semantics: only what was sent is changed.
+         *
+         *     Email is deliberately absent. Changing it needs a verify-the-new-address
+         *     flow and somewhere to send mail from, and accepting a new address without
+         *     proving it is reachable would lock people out of their own accounts.
+         */
+        ProfileUpdate: {
+            /** First Name */
+            first_name?: string | null;
+            /** Last Name */
+            last_name?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Linkedin Url */
+            linkedin_url?: string | null;
+            /** Github Url */
+            github_url?: string | null;
+            /** Portfolio Url */
+            portfolio_url?: string | null;
+            /** Timezone */
+            timezone?: string | null;
             career_level?: components["schemas"]["CareerLevel"] | null;
             /** Years Experience */
             years_experience?: number | null;
@@ -1600,6 +1733,8 @@ export interface components {
              */
             created_at: string;
             profile?: components["schemas"]["ProfileResponse"] | null;
+            /** Avatar */
+            avatar?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1790,6 +1925,174 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    read_me_api_v1_users_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    delete_me_api_v1_users_me_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDelete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_me_api_v1_users_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_avatar_api_v1_users_me_avatar_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_set_avatar_api_v1_users_me_avatar_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_avatar_api_v1_users_me_avatar_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    change_password_api_v1_users_me_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

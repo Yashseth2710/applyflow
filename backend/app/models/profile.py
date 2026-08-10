@@ -43,6 +43,11 @@ class Profile(Base, UUIDMixin, TimestampMixin):
     years_experience: Mapped[int | None] = mapped_column(SmallInteger)
     summary: Mapped[str | None] = mapped_column(Text)
 
+    # A key into storage, not the bytes themselves. The picture goes through
+    # the same Storage abstraction as resumes, so it survives a redeploy on a
+    # host with an ephemeral filesystem and is covered by the same backup.
+    avatar_key: Mapped[str | None] = mapped_column(String(500))
+
     user: Mapped["User"] = relationship(back_populates="profile")
 
     def __repr__(self) -> str:

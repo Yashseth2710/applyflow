@@ -15,6 +15,15 @@ interface AuthContextValue {
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
+  /** Replace the cached user after settings change it.
+   *
+   *  Every account endpoint returns the whole user, so the header picks up a
+   *  new name or picture straight away. Without this the change would only
+   *  appear on the next page load, which reads as a save that did nothing. */
+  applyUser: (user: User) => void;
+  /** Drop the session locally without calling the server. For account
+   *  deletion, where there is nothing left to log out of. */
+  forgetSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -103,23 +112,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [applyAuth],
   );
 
+  const applyUser = useCallback((next: User) => setUser(next), []);
+
+  const forgetSession = useCallback(() => {
+    clearAccessToken();
+    document.cookie = "applyflow_session=; Max-Age=0; path=/";
+    setUser(null);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.post("/auth/logout", undefined, { skipAuth: true });
     } finally {
       // Clear local state even if the request failed — the user asked to
       // leave, so honour that regardless of the network.
-      clearAccessToken();
-      // Drop the hint too, so a failed logout request doesn't leave the next
-      // page load attempting a refresh that cannot succeed.
-      document.cookie = "applyflow_session=; Max-Age=0; path=/";
-      setUser(null);
+      forgetSession();
       router.push("/login");
     }
-  }, [router]);
+  }, [forgetSession, router]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, login, register, logout, applyUser, forgetSession }}
+    >
       {children}
     </AuthContext.Provider>
   );
