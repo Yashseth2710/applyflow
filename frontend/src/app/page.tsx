@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 
 import { LogoWordmark } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";

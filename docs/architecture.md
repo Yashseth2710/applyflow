@@ -155,6 +155,26 @@ per invocation, so `DATABASE_URL` uses the `-pooler` hostname in production.
 Locally it stays direct, which is why `.env.example` still says to avoid it
 there.
 
+**Link prefetching is off.** Found by opening the deployed app and reading the
+network tab: around forty-five 404s per session, all of them Next 16 segment
+prefetches. Proven with curl — the same URL answers 200 without the
+`Next-Router-Segment-Prefetch` header and 404 with it, matched to `/404` by the
+platform. Nothing user-facing broke, because a missed prefetch just means the
+page is fetched on click.
+
+Next 16.3 has no switch for it. `experimental.clientSegmentCache` no longer
+exists and the build rejects it; `prefetchInlining: false` splits prefetches
+into *more* requests, not fewer. Both were tried. So every `next/link` import
+now points at `components/ui/link.tsx`, which sets `prefetch={false}` — and a
+browser run against a production build confirms zero prefetch requests, rather
+than assuming it.
+
+The trade is cheap here specifically: pages are shells that load their data
+client-side through TanStack Query, so prefetch was warming the RSC payload and
+not the data. Leaving it meant a network tab full of red, which reads as a
+broken app to anyone who looks. Revisit when the platform serves segment
+prefetches correctly.
+
 ### 6. Analytics withholds percentages until the numbers earn them
 
 Counts, timings and the weekly chart are shown from the first application. Rates are

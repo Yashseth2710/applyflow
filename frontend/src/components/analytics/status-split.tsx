@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 
 import { ALL_STATUSES, STATUS_META } from "@/lib/application-status";
 import type { ApplicationStatus, StatusCount } from "@/lib/types";

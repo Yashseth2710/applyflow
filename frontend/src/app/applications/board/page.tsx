@@ -11,7 +11,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 

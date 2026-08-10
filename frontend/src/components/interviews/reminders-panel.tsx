@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { AlertTriangle, CalendarClock } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { ROUND_LABELS } from "@/lib/interview-meta";

@@ -2,7 +2,7 @@
 
 import { format, formatDistanceToNow } from "date-fns";
 import { Check, Download, ExternalLink, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
