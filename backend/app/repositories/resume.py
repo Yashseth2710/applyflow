@@ -65,6 +65,23 @@ class ResumeRepository:
             .limit(1)
         ).scalar_one_or_none()
 
+    def total_bytes(self, user_id: uuid.UUID) -> int:
+        """How much this account is holding, versions included.
+
+        Counted from the resume rows rather than the stored bytes so the answer
+        is the same whichever storage backend is configured — and every version
+        is a real file, so old ones count against the quota exactly like the
+        current one does.
+        """
+        return (
+            self.db.execute(
+                select(func.coalesce(func.sum(Resume.size_bytes), 0)).where(
+                    Resume.user_id == user_id
+                )
+            ).scalar_one()
+            or 0
+        )
+
     def count_applications_using(self, user_id: uuid.UUID, resume_id: uuid.UUID) -> int:
         return self.db.execute(
             select(func.count())

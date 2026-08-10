@@ -69,3 +69,19 @@ def get_current_user(
         )
 
     return user
+
+
+def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """The caller, if there is one. Never raises.
+
+    For endpoints that answer everyone but can say more to someone signed in.
+    Requiring a token there would turn a public endpoint into a private one,
+    which breaks every existing caller for the sake of an extra field.
+    """
+    try:
+        return get_current_user(credentials, db)
+    except HTTPException:
+        return None

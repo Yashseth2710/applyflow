@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.application import Application
 from app.models.enums import ApplicationStatus
 from app.repositories.application import ApplicationRepository
@@ -23,6 +24,16 @@ class ApplicationNotFound(Exception):
     """
 
 
+class TooManyApplications(Exception):
+    """The account is holding as many as it is allowed to."""
+
+    def __init__(self, limit: int) -> None:
+        super().__init__(
+            f"You have reached the limit of {limit:,} applications. Delete some to add more."
+        )
+        self.limit = limit
+
+
 #: Statuses that imply the application was actually submitted.
 _SUBMITTED = frozenset(ApplicationStatus) - {ApplicationStatus.WISHLIST}
 
@@ -33,6 +44,12 @@ class ApplicationService:
         self.repo = ApplicationRepository(db)
 
     def create(self, user_id: uuid.UUID, payload: ApplicationCreate) -> Application:
+        # Capping the length of one job description bounds a request; it does
+        # not bound an account. Rows are the other route into a database with a
+        # hard size ceiling, and unlike an upload there is no file to notice.
+        if self.repo.count_for_user(user_id) >= settings.MAX_APPLICATIONS_PER_USER:
+            raise TooManyApplications(settings.MAX_APPLICATIONS_PER_USER)
+
         data = payload.model_dump()
         status = data.pop("status")
 

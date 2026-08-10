@@ -13,6 +13,14 @@ from app.models.enums import (
     InterviewRound,
 )
 
+#: Notes and feedback sit in TEXT columns. Uncapped, one request can write as
+#: much as it likes into a database with a hard 500 MB ceiling — the same hole
+#: the upload quota closes, just reached through a different door.
+MAX_NOTE_CHARS = 10_000
+
+#: An address, or a meeting link.
+MAX_LOCATION_CHARS = 2_000
+
 
 def _blank_to_none(v: str | None) -> str | None:
     if v is None:
@@ -25,10 +33,10 @@ class InterviewBase(BaseModel):
     mode: InterviewMode | None = None
     scheduled_at: datetime
     duration_minutes: int | None = Field(default=None, ge=1, le=1440)
-    location: str | None = None
+    location: str | None = Field(default=None, max_length=MAX_LOCATION_CHARS)
     interviewer: str | None = Field(default=None, max_length=200)
-    notes: str | None = None
-    feedback: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_NOTE_CHARS)
+    feedback: str | None = Field(default=None, max_length=MAX_NOTE_CHARS)
 
     @field_validator("location", "interviewer", "notes", "feedback")
     @classmethod
@@ -60,10 +68,10 @@ class InterviewUpdate(BaseModel):
     mode: InterviewMode | None = None
     scheduled_at: datetime | None = None
     duration_minutes: int | None = Field(default=None, ge=1, le=1440)
-    location: str | None = None
+    location: str | None = Field(default=None, max_length=MAX_LOCATION_CHARS)
     interviewer: str | None = Field(default=None, max_length=200)
-    notes: str | None = None
-    feedback: str | None = None
+    notes: str | None = Field(default=None, max_length=MAX_NOTE_CHARS)
+    feedback: str | None = Field(default=None, max_length=MAX_NOTE_CHARS)
     outcome: InterviewOutcome | None = None
 
     @field_validator("location", "interviewer", "notes", "feedback")

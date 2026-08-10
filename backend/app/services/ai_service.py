@@ -85,6 +85,10 @@ class AIService:
         # Reuse unless the inputs moved or the user asked again explicitly.
         if existing is not None and not force and existing.input_hash == current_hash:
             existing.stale = False  # type: ignore[attr-defined]
+            # Not a stored column, same as `stale`. The caller needs to know
+            # whether the model was actually reached: a cached answer costs
+            # nothing and should not spend anyone's daily allowance.
+            existing.from_cache = True  # type: ignore[attr-defined]
             return existing
 
         prompt, fast = self._build_prompt(application, task)
@@ -108,6 +112,7 @@ class AIService:
         self.db.commit()
         self.db.refresh(record)
         record.stale = False  # type: ignore[attr-defined]
+        record.from_cache = False  # type: ignore[attr-defined]
         return record
 
     # ---- internals ----

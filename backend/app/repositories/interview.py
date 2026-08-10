@@ -6,7 +6,7 @@ Same rule as the rest: every method takes user_id and filters on it.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Row, Select, select
+from sqlalchemy import Row, Select, func, select
 from sqlalchemy.orm import Session
 
 from app.models.application import Application
@@ -111,6 +111,17 @@ class InterviewRepository:
             .scalars()
             .all()
         )
+
+    def count_for_application(self, user_id: uuid.UUID, application_id: uuid.UUID) -> int:
+        count: int = self.db.execute(
+            select(func.count())
+            .select_from(Interview)
+            .where(
+                Interview.user_id == user_id,
+                Interview.application_id == application_id,
+            )
+        ).scalar_one()
+        return count
 
     # ---- writes ----
 

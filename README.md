@@ -168,6 +168,9 @@ Never commit `.env`. `.gitignore` blocks it; `.env.example` documents what is ne
 | `GEMINI_API_KEY` | Only needed when `AI_PROVIDER=gemini` |
 | `STORAGE_BACKEND` | `postgres` (default) or `local`. Local disk does not survive a deploy on the free tier |
 | `DEFAULT_TIMEZONE` | Fallback when a user's timezone can't be detected |
+| `RATE_LIMIT_ENABLED` | On by default. The test suite turns it off — every request there comes from one address |
+| `RATE_LIMIT_PROXY_DEPTH` | How many proxies sit in front. `0` locally, `1` behind a host that terminates TLS. **Must be set explicitly in production** — the app refuses to start otherwise |
+| `MAX_STORAGE_PER_USER_MB` | Total uploads per account, versions included. A per-file cap alone bounds nothing |
 
 `.env.example` lists every variable, including the ones with sensible defaults
 that are not worth setting by hand.

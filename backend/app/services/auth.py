@@ -20,6 +20,7 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.repositories.user import UserRepository
+from app.services.rate_events import DurableLimiter, login_bucket
 
 
 class EmailAlreadyRegistered(Exception):
@@ -48,6 +49,7 @@ class AuthService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.users = UserRepository(db)
+        self.limits = DurableLimiter(db)
 
     def register(
         self,
@@ -73,18 +75,43 @@ class AuthService:
         return user
 
     def authenticate(self, *, email: str, password: str) -> User:
+        """Raises TooManyAttempts once this account has been guessed at enough.
+
+        Counted against the email rather than the caller's address, because the
+        address is the part an attacker can change. One attempt per machine
+        across a botnet never troubles an address limit, and every one of those
+        attempts is aimed at the same account.
+        """
+        bucket = login_bucket(email)
+        window = settings.login_attempt_window
+
+        # Checked before the password is verified. Argon2 is deliberately slow,
+        # so verifying a password for a request that will be refused regardless
+        # is the cheapest way to make the server do expensive work.
+        self.limits.check(bucket, limit=settings.LOGIN_ATTEMPT_LIMIT, window=window)
+
         user = self.users.get_by_email(email)
 
         if user is None:
             # Do the work anyway so both branches cost the same.
             verify_password(password, _DUMMY_HASH)
+            # Recorded for addresses that do not exist, too. Otherwise the
+            # difference between 429 and 401 answers the question login goes
+            # out of its way not to: whether this email is registered.
+            self.limits.record(bucket, window=window)
             raise InvalidCredentials
 
         if not verify_password(password, user.password_hash):
+            self.limits.record(bucket, window=window)
             raise InvalidCredentials
 
         if not user.is_active:
             raise AccountDisabled
+
+        # A correct password ends the run. Those failures were someone
+        # misremembering their own password, and counting them against the next
+        # honest attempt would lock out the person the limit exists to protect.
+        self.limits.clear(bucket)
 
         # Transparently upgrade hashes if the Argon2 parameters have changed
         # since this password was set.

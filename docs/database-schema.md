@@ -18,6 +18,8 @@ users
       └── ai_outputs                 (1:N)
 
 stored_files                         file bytes, keyed by path, owned by a user
+rate_events                          recent attempts, for limits that must
+                                     survive a restart
 ```
 
 Every child of `applications` also stores `user_id` directly. Denormalised on
@@ -210,6 +212,28 @@ Files live in the database rather than on disk because the free host wipes its
 filesystem on every deploy. Writes go through the same session as the row that
 describes them, so a file and its metadata commit or roll back together and
 neither can outlive the other.
+
+## rate_events
+
+One row per attempt at something worth counting. See
+[architecture.md](architecture.md) decision 10.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| bucket | VARCHAR(200) | what is being counted, e.g. `login:someone@example.com` or `ai:<user id>` |
+| created_at | TIMESTAMPTZ | |
+
+Indexed on `(bucket, created_at)` — every read is "how many in this bucket
+since t", and indexing the bucket alone would still scan every attempt ever
+made against it.
+
+Deliberately **not** linked to `users`. Failed logins are recorded for
+addresses that have no account, because counting only real ones would let an
+attacker tell the two apart by whether they ever see a 429.
+
+Rows are pruned per bucket on each write, with an occasional sweep of anything
+older than a day. Nothing here is interesting for longer than that.
 
 ---
 

@@ -10,6 +10,15 @@ from app.models.enums import ApplicationStatus, EmploymentType, WorkMode
 
 T = TypeVar("T")
 
+#: A long job posting runs to a few thousand characters. Fifty thousand is far
+#: beyond any real one and still bounded, which the underlying TEXT column is
+#: not — uncapped, a single request can write as much as it likes into a 500 MB
+#: database, and no per-file upload limit goes anywhere near that path.
+MAX_DESCRIPTION_CHARS = 50_000
+
+#: URLs. Browsers stop honouring them well before this.
+MAX_URL_CHARS = 2_000
+
 
 class Page(BaseModel, Generic[T]):
     items: list[T]
@@ -32,9 +41,9 @@ class ApplicationBase(BaseModel):
     company_name: Annotated[str, Field(min_length=1, max_length=200)]
     job_title: Annotated[str, Field(min_length=1, max_length=200)]
 
-    company_website: str | None = None
-    job_description: str | None = None
-    job_url: str | None = None
+    company_website: str | None = Field(default=None, max_length=MAX_URL_CHARS)
+    job_description: str | None = Field(default=None, max_length=MAX_DESCRIPTION_CHARS)
+    job_url: str | None = Field(default=None, max_length=MAX_URL_CHARS)
     location: str | None = Field(default=None, max_length=200)
 
     work_mode: WorkMode | None = None
@@ -97,9 +106,9 @@ class ApplicationUpdate(BaseModel):
 
     company_name: str | None = Field(default=None, min_length=1, max_length=200)
     job_title: str | None = Field(default=None, min_length=1, max_length=200)
-    company_website: str | None = None
-    job_description: str | None = None
-    job_url: str | None = None
+    company_website: str | None = Field(default=None, max_length=MAX_URL_CHARS)
+    job_description: str | None = Field(default=None, max_length=MAX_DESCRIPTION_CHARS)
+    job_url: str | None = Field(default=None, max_length=MAX_URL_CHARS)
     location: str | None = Field(default=None, max_length=200)
     work_mode: WorkMode | None = None
     employment_type: EmploymentType | None = None

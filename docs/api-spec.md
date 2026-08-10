@@ -185,8 +185,53 @@ rates) are `null` until there are enough applications behind them — see decisi
 
 ## Rate limits
 
-| Group | Limit |
-|-------|-------|
-| Auth | 5/min per IP |
-| AI | 10/hour per user |
-| General | 100/min per user |
+Applied per endpoint, not as a blanket default. Anything not listed is
+uncapped — reading your own data is neither expensive nor guessable.
+
+| Endpoint | Limit | Counted by | Survives a restart |
+|----------|-------|------------|--------------------|
+| `POST /auth/register` | 5/hour | IP address | no |
+| `POST /auth/register` | 10/day | IP address | **yes** |
+| `POST /auth/login` | 10/min and 60/hour | IP address | no |
+| `POST /auth/login` | 10 failures / 15 min | **email** | **yes** |
+| `POST /auth/refresh` | 30/min | IP address | no |
+| `POST /ai/applications/{id}/{task}` | 20/hour | account | no |
+| `POST /ai/applications/{id}/{task}` | 60/day | account | **yes** |
+| `POST /resumes` | 30/hour | account | **yes** |
+
+Failed logins are counted against the email whether or not that account exists,
+and the 429 is identical either way — otherwise the difference between 429 and
+401 would reveal which addresses are registered. A correct password clears the
+count. Cached AI answers never reach the model, so they do not count.
+
+`POST /resumes` also returns **413** when the upload would take the account past
+its total storage quota. `GET /resumes/limits` reports `storage_used_bytes`,
+`storage_limit_bytes` and `storage_remaining_bytes` so a client can check first.
+
+## Size caps
+
+Rates are not the only bound. Rows and text are the other route into a database
+with a hard size ceiling, and no upload limit touches that path.
+
+| | Cap | Response when exceeded |
+|---|-----|------------------------|
+| Applications per account | 1,000 | 409 |
+| Interviews per application | 50 | 409 |
+| `job_description` | 50,000 chars | 422 |
+| Interview `notes` / `feedback`, resume `notes` | 10,000 chars | 422 |
+| URL fields | 2,000 chars | 422 |
+
+409 rather than 429 on the row caps: waiting changes nothing, deleting does.
+
+A blocked request returns **429** with the usual `{"detail": "…"}` body and a
+`Retry-After` header in seconds.
+
+`X-RateLimit-Limit`, `-Remaining` and `-Reset` come back on **successful**
+responses from a capped endpoint. They are absent on error responses, including
+the 429 itself, because those are raised rather than returned and the headers
+are attached on the way out — so a client should read the allowance from a
+response that worked, and `Retry-After` from the one that did not.
+
+Why the AI limit counts accounts rather than addresses, and how the caller's
+address is worked out from behind a proxy, are in
+[architecture.md](architecture.md) decision 9.

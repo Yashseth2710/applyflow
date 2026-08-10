@@ -1,6 +1,7 @@
 """Resume endpoints."""
 
 import uuid
+from datetime import timedelta
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -8,7 +9,7 @@ from fastapi import status as http_status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_storage
+from app.api.deps import get_current_user, get_current_user_optional, get_storage
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.storage import Storage
@@ -21,11 +22,13 @@ from app.schemas.resume import (
     ResumeUploadResponse,
     ResumeUsageResponse,
 )
+from app.services.rate_events import DurableLimiter, TooManyAttempts, upload_bucket
 from app.services.resume import (
     InvalidResumeFile,
     ResumeNotFound,
     ResumeService,
     ResumeStorageUnavailable,
+    StorageQuotaExceeded,
 )
 
 router = APIRouter()
@@ -49,17 +52,35 @@ def get_resume_service(
 
 
 @router.get("/limits", summary="Upload limits")
-def get_upload_limits() -> dict[str, object]:
+def get_upload_limits(
+    current_user: User | None = Depends(get_current_user_optional),
+    service: ResumeService = Depends(get_resume_service),
+) -> dict[str, object]:
     """Lets the client reject a file before sending it rather than after.
 
     Declared above /{resume_id} — a literal path registered after a parameterised
     one of the same shape is never reached.
+
+    Auth is optional rather than required. The file rules are the same for
+    everyone, and demanding a token to read them would turn a public endpoint
+    private — breaking every existing caller to add a field. Signed in, the
+    answer also includes what this account has used.
     """
-    return {
+    limits: dict[str, object] = {
         "max_size_bytes": settings.max_upload_bytes,
         "max_size_mb": settings.MAX_UPLOAD_SIZE_MB,
         "allowed_types": settings.allowed_upload_types_list,
+        "storage_limit_bytes": settings.max_storage_per_user_bytes,
     }
+
+    if current_user is not None:
+        # So the client can say "this will not fit" before spending a minute
+        # uploading something that is going to be refused.
+        used = service.storage_used(current_user.id)
+        limits["storage_used_bytes"] = used
+        limits["storage_remaining_bytes"] = max(0, settings.max_storage_per_user_bytes - used)
+
+    return limits
 
 
 @router.get("", response_model=list[ResumeResponse], summary="List resumes")
@@ -84,9 +105,25 @@ def upload_resume(
     replaces_id: uuid.UUID | None = Form(default=None),
     current_user: User = Depends(get_current_user),
     service: ResumeService = Depends(get_resume_service),
+    db: Session = Depends(get_db),
 ) -> ResumeUploadResponse:
     """Pass replaces_id to add a version to an existing resume rather than
     creating a new one."""
+    # Counted per account and kept in the database, because the thing being
+    # protected — a 500 MB shared database — does not get bigger when the
+    # process restarts.
+    limits = DurableLimiter(db)
+    bucket = upload_bucket(current_user.id)
+    window = timedelta(hours=1)
+    try:
+        limits.check(bucket, limit=settings.UPLOAD_HOURLY_LIMIT, window=window)
+    except TooManyAttempts as exc:
+        raise HTTPException(
+            status_code=http_status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many uploads in the last hour. Try again shortly.",
+            headers={"Retry-After": str(exc.retry_after)},
+        ) from exc
+
     try:
         result = service.upload(
             current_user.id,
@@ -101,10 +138,20 @@ def upload_resume(
         raise HTTPException(
             status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
+    except StorageQuotaExceeded as exc:
+        # 413 rather than 422: nothing is wrong with the file, it is the size
+        # that cannot be accepted, and the message says what to do about it.
+        raise HTTPException(
+            status_code=http_status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc)
+        ) from exc
     except ResumeNotFound as exc:
         raise _NOT_FOUND from exc
     except ResumeStorageUnavailable as exc:
         raise _unavailable() from exc
+
+    # Only a stored file counts against the allowance. Recording a rejected
+    # upload would let a loop of invalid files exhaust the caller's own quota.
+    limits.record(bucket, window=window)
 
     response = ResumeUploadResponse.model_validate(result.resume)
     if result.duplicate_of is not None:

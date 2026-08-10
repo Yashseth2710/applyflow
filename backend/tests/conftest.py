@@ -9,8 +9,25 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_ai_provider
 from app.core.database import engine, get_db
+from app.core.rate_limit import limiter
 from app.main import app
 from app.services.ai import MockProvider
+
+
+@pytest.fixture(autouse=True)
+def _no_rate_limits() -> Generator[None, None, None]:
+    """Rate limiting off unless a test asks for it.
+
+    Every request in the suite arrives from the same address, so the limits
+    would fire partway through a run and the failure would land on whichever
+    test happened to be next rather than the one that caused it.
+    `test_rate_limit.py` turns it back on for itself.
+    """
+    limiter.enabled = False
+    limiter.reset()
+    yield
+    limiter.enabled = False
+    limiter.reset()
 
 
 @pytest.fixture

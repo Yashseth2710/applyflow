@@ -44,6 +44,27 @@ class ResumeStorageUnavailable(Exception):
     """The file could not be written or read back."""
 
 
+class StorageQuotaExceeded(Exception):
+    """The account is holding as much as it is allowed to.
+
+    Separate from InvalidResumeFile because nothing is wrong with the file —
+    the same upload would succeed after deleting something else, and the
+    message needs to say so rather than implying a bad PDF.
+    """
+
+    def __init__(self, used: int, limit: int, incoming: int) -> None:
+        used_mb = used / (1024 * 1024)
+        limit_mb = limit / (1024 * 1024)
+        incoming_mb = incoming / (1024 * 1024)
+        super().__init__(
+            f"This would take you over the {limit_mb:.0f} MB storage limit. "
+            f"You are using {used_mb:.1f} MB and this file is {incoming_mb:.1f} MB. "
+            "Delete a resume or an old version to make room."
+        )
+        self.used = used
+        self.limit = limit
+
+
 @dataclass(frozen=True)
 class UploadResult:
     resume: Resume
@@ -105,6 +126,7 @@ class ResumeService:
 
         try:
             resolved_type = self._validate(buffered, filename, content_type, size)
+            self._check_quota(user_id, size)
 
             family_id, version, previous = self._resolve_family(user_id, replaces_id)
 
@@ -190,6 +212,22 @@ class ResumeService:
 
         buffered.seek(0)
         return buffered, size, hasher.hexdigest()
+
+    def storage_used(self, user_id: uuid.UUID) -> int:
+        """Bytes this account is holding, versions included."""
+        return self.repo.total_bytes(user_id)
+
+    def _check_quota(self, user_id: uuid.UUID, incoming: int) -> None:
+        """A per-file size cap does not bound anything on its own.
+
+        Uploading the same five megabytes two hundred times breaks no per-file
+        rule and fills the whole database, which on the free tier takes the
+        site down for its one real user. The total is what has to be bounded.
+        """
+        limit = settings.max_storage_per_user_bytes
+        used = self.repo.total_bytes(user_id)
+        if used + incoming > limit:
+            raise StorageQuotaExceeded(used, limit, incoming)
 
     def _validate(
         self, buffered: IO[bytes], filename: str, content_type: str | None, size: int

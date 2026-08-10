@@ -160,6 +160,11 @@ class ApplicationRepository:
         # for the type checker, so drop them explicitly rather than casting.
         return [s for s in rows if s is not None]
 
+    def count_for_user(self, user_id: uuid.UUID) -> int:
+        return self.db.execute(
+            select(func.count()).select_from(Application).where(Application.user_id == user_id)
+        ).scalar_one()
+
     # ---- writes ----
 
     def add(self, application: Application) -> Application:

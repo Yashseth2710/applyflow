@@ -223,6 +223,11 @@ export interface paths {
          *
          *     Declared above /{resume_id} — a literal path registered after a parameterised
          *     one of the same shape is never reached.
+         *
+         *     Auth is optional rather than required. The file rules are the same for
+         *     everyone, and demanding a token to read them would turn a public endpoint
+         *     private — breaking every existing caller to add a field. Signed in, the
+         *     answer also includes what this account has used.
          */
         get: operations["get_upload_limits_api_v1_resumes_limits_get"];
         put?: never;

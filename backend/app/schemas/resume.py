@@ -20,7 +20,9 @@ class ResumeUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str | None = Field(default=None, min_length=1, max_length=200)
-    notes: str | None = None
+    # A note about what this version is tuned for, not a document. Capped
+    # because the column behind it is TEXT and nothing else bounds it.
+    notes: str | None = Field(default=None, max_length=10_000)
 
     @field_validator("title")
     @classmethod

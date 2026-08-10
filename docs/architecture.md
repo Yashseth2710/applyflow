@@ -182,6 +182,148 @@ same hue and chroma, dark enough to read — and only text uses it. On a dark
 ground the fills already clear 4.5:1, so there the ink tokens simply alias them
 and a component never has to know which theme it is in.
 
+### 9. Rate limits are per endpoint, and count the right thing
+
+Four endpoints are capped rather than one blanket default: a blanket limit has
+to be loose enough for the chattiest route, which makes it useless on the
+expensive ones.
+
+| Endpoint | Limit | Counted by | Why |
+|----------|-------|------------|-----|
+| `POST /auth/register` | 5/hour | address | Registering is a once-in-a-lifetime act; five leaves room for a typo'd email |
+| `POST /auth/login` | 10/min **and** 60/hour | address | The minute limit stops a fast script, the hourly one stops a slow script sitting just under it all day |
+| `POST /auth/refresh` | 30/min | address | Called on every page load, so this catches something pathological rather than policing normal use |
+| `POST /ai/applications/…` | 20/hour | **account** | The only endpoint that spends money |
+
+**Counting by account on the AI route, not by address.** Quota is spent per
+account, so that is what the allowance should follow. An address gets it wrong
+in both directions: an office behind one NAT would share a single allowance
+between everyone in it, and one person on a phone would be handed a fresh one
+every time the network moved them. The token is decoded rather than used as a
+string, because access tokens rotate every fifteen minutes and keying on the
+string would hand out a clean slate on every refresh.
+
+**Working out the caller's address.** The host terminates TLS in front of the
+process, so `request.client.host` is the proxy on every request — limiting on
+it would put the whole world in one bucket and the first attacker would lock
+everyone else out. `X-Forwarded-For` carries the chain, but the client writes
+the left-hand entries and the proxy appends to them. Only what the proxy added
+can be believed, so the address is counted in from the *right* by
+`RATE_LIMIT_PROXY_DEPTH` — 0 locally, 1 behind Render. Too low counts everyone
+as one address; too high trusts a header the caller wrote.
+
+**IPv6 is bucketed by /64, not by address.** A home IPv6 line is handed a whole
+/64 as a matter of course — eighteen quintillion addresses belonging to one
+person. Counting the full address there means a fresh allowance on every
+request, which is not a limit at all.
+
+**Production refuses to start if `RATE_LIMIT_PROXY_DEPTH` was not set on
+purpose.** Inheriting the default of 0 behind a proxy is worse than having no
+limit, and the damage is invisible until somebody is already locked out.
+Setting it explicitly to 0 is accepted; the objection is to inheriting it.
+
+`RATE_LIMIT_ENABLED=false` in the test suite, whose requests all come from one
+address; `tests/test_rate_limit.py` turns it back on for itself.
+
+### 10. A second layer of limits that survives a restart
+
+The counters above live in process memory, which has two blind spots.
+
+They are lost on restart, and this host sleeps after a few idle minutes, so a
+restart is routine rather than exceptional — an hourly limit held in memory is
+not really hourly. And they count addresses, which is the right unit for a
+flood and the wrong one for guessing: ten thousand attempts spread one per
+address across a botnet never trip an address limit, and every one of them is
+aimed at the same account.
+
+So a second layer, backed by the `rate_events` table, counts the things whose
+cost outlives the process:
+
+| What | Limit | Bucket |
+|------|-------|--------|
+| Failed logins | 10 per 15 min | the **email**, whether or not it has an account |
+| Registrations | 10/day | the address — there is no account yet to key on |
+| AI generations | 60/day | the account |
+| Resume uploads | 30/hour | the account |
+
+`POST /auth/refresh` is deliberately **not** on this list. It is flood
+protection for a request the client makes on every page load; a restart
+resetting that counter costs nothing, and writing a database row per refresh
+would be a worse trade than the limit is worth.
+
+Both layers stay. The in-memory one is cheap and keeps most traffic away from
+the database; the durable one is what actually holds.
+
+**Failed logins are counted for emails that do not exist, too.** Counting only
+real accounts would leak the thing login is careful not to say: an attacker
+seeing 429 for one address and 401 for another has learned which is registered,
+undoing the deliberate choice to answer "no such user" and "wrong password"
+identically. The 429 body is byte-identical in both cases, and there is a test
+asserting that.
+
+**A correct password clears the count.** Those failures were somebody
+misremembering their own password, and holding them against the next honest
+attempt would lock out the person the limit exists to protect.
+
+**The check happens before the password is verified.** Argon2 is deliberately
+slow, so verifying a password for a request that will be refused anyway is the
+cheapest way to make the server do expensive work.
+
+**Cached AI answers do not count.** They never reach the model, so charging
+them would mean reopening an application spends the day's budget.
+
+Rows are pruned per bucket on every write, with an occasional sweep of
+everything past a day — a run through ten thousand invented addresses should
+not leave ten thousand rows behind.
+
+### 11. Storage is capped per account, not just per file
+
+`MAX_UPLOAD_SIZE_MB` bounds one file. It bounds nothing in total: the same five
+megabytes uploaded two hundred times breaks no per-file rule and fills the free
+500 MB database, which takes the site down for its actual user.
+`MAX_STORAGE_PER_USER_MB` is the total, versions included, and `/resumes/limits`
+reports what is used and left so the client can refuse a file before spending a
+minute sending it.
+
+A refused upload does not count against the hourly upload allowance — otherwise
+a loop of invalid files would exhaust the caller's own quota, which is a way to
+lock someone out of their own account. The same reasoning applies to
+registration: a duplicate email created nothing, so it costs nothing.
+
+**Rows are the other door into the same database.** The upload quota bounds
+bytes arriving as files. It does nothing about `job_description`, `notes` and
+`feedback`, which sit in unbounded `TEXT` columns — one request could write as
+much as it liked, and no upload limit goes anywhere near that path. So the text
+fields have explicit maximums (50,000 characters for a job description, 10,000
+for notes), and accounts have row caps: `MAX_APPLICATIONS_PER_USER` and
+`MAX_INTERVIEWS_PER_APPLICATION`.
+
+Both return **409**, not 429. Waiting does not help; deleting something does,
+and the message says so.
+
+### 12. What this deliberately does not solve
+
+Written down because a security note that only lists wins is not much use.
+
+**Being locked out on purpose.** Anyone who knows your email can keep it in
+15-minute lockouts indefinitely. That is inherent to counting by account, and
+the usual escape — password reset — does not exist here. The window is short
+and a correct password clears it instantly, which is the mitigation, not a fix.
+
+**Failed logins now cost a database write.** Making the count durable means
+unauthenticated traffic can make the database do work. Pruning bounds the
+storage and the in-memory address limit blunts the cheap version, but this is a
+trade made on purpose, not an oversight.
+
+**Refresh tokens still cannot be revoked.** `issue_tokens` mints a pair with no
+server-side record, so a stolen refresh cookie is good for seven days and
+logout only clears it from the browser it was in. The fix is a sessions table
+with rotation and reuse detection. Not built.
+
+**No security response headers, and no dependency scanning.** No HSTS,
+`X-Content-Type-Options`, `X-Frame-Options` or CSP; nothing runs `pip-audit` or
+`npm audit` in CI.
+
 ---
 
 ## AI provider abstraction
@@ -236,7 +378,7 @@ mode breaks Alembic migrations and psycopg3 prepared statements.
 | SQL injection | Bound parameters everywhere. The analytics aggregates are hand-written SQL, but every value — `user_id` included — is a bind parameter, never interpolated |
 | CORS | Explicit origin list, credentials enabled |
 | Uploads | PDF only, size-capped, content-type verified, stored as rows in the database rather than on disk |
-| Rate limiting | **Not implemented.** `slowapi` is a declared dependency but nothing imports it. Needed before the app is public |
+| Rate limiting | Per endpoint, via `slowapi`. Registration 5/hour, login 10/minute and 60/hour, refresh 30/minute, AI generation 20/hour per account. See decision 9 |
 | Secrets | Env vars only; `.env` gitignored and verified |
 | Errors | Generic messages to clients; details logged server-side |
 

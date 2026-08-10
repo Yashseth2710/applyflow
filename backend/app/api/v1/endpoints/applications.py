@@ -22,7 +22,11 @@ from app.schemas.application import (
     SortField,
     SortOrder,
 )
-from app.services.application import ApplicationNotFound, ApplicationService
+from app.services.application import (
+    ApplicationNotFound,
+    ApplicationService,
+    TooManyApplications,
+)
 
 router = APIRouter()
 
@@ -125,7 +129,12 @@ def create_application(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ApplicationDetailResponse:
-    application = ApplicationService(db).create(current_user.id, payload)
+    try:
+        application = ApplicationService(db).create(current_user.id, payload)
+    except TooManyApplications as exc:
+        # 409 rather than 429: waiting changes nothing. The account is full,
+        # and the message says what would fix it.
+        raise HTTPException(status_code=http_status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return ApplicationDetailResponse.model_validate(application)
 
 

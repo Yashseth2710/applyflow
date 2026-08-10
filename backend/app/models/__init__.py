@@ -22,6 +22,7 @@ from app.models.enums import (
 )
 from app.models.interview import Interview
 from app.models.profile import Profile
+from app.models.rate_event import RateEvent
 from app.models.resume import Resume
 from app.models.stored_file import StoredFile
 from app.models.user import User
@@ -43,6 +44,7 @@ __all__ = [
     "InterviewOutcome",
     "InterviewRound",
     "Profile",
+    "RateEvent",
     "Resume",
     "StoredFile",
     "TimestampMixin",

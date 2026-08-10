@@ -20,6 +20,7 @@ from app.services.interview import (
     ApplicationNotFound,
     InterviewNotFound,
     InterviewService,
+    TooManyInterviews,
 )
 
 router = APIRouter()
@@ -88,6 +89,8 @@ def create_interview(
         interview = InterviewService(db).create(current_user.id, payload)
     except ApplicationNotFound as exc:
         raise _NO_APPLICATION from exc
+    except TooManyInterviews as exc:
+        raise HTTPException(status_code=http_status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return InterviewResponse.model_validate(interview)
 
 

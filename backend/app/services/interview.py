@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.enums import InterviewRound
 from app.models.interview import Interview
 from app.repositories.application import ApplicationRepository
@@ -41,6 +42,14 @@ class ApplicationNotFound(Exception):
     """The application an interview was going to hang off doesn't exist."""
 
 
+class TooManyInterviews(Exception):
+    """This application already has as many as it is allowed."""
+
+    def __init__(self, limit: int) -> None:
+        super().__init__(f"An application can hold at most {limit} interviews.")
+        self.limit = limit
+
+
 class InterviewService:
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -72,6 +81,14 @@ class InterviewService:
         application = self.applications.get(user_id, payload.application_id)
         if application is None:
             raise ApplicationNotFound
+
+        # A stage can hold several interviews. It cannot hold fifty, and these
+        # rows are otherwise an unbounded way to grow the database.
+        if (
+            self.repo.count_for_application(user_id, application.id)
+            >= settings.MAX_INTERVIEWS_PER_APPLICATION
+        ):
+            raise TooManyInterviews(settings.MAX_INTERVIEWS_PER_APPLICATION)
 
         data = payload.model_dump()
         data.pop("application_id")

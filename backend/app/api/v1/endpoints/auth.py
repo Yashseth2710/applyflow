@@ -1,11 +1,28 @@
 """Authentication endpoints."""
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from datetime import timedelta
+
+from fastapi import (
+    APIRouter,
+    Cookie,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import (
+    LOGIN_LIMITS,
+    REFRESH_LIMIT,
+    REGISTER_LIMIT,
+    client_ip,
+    limiter,
+)
 from app.models.user import User
 from app.schemas.auth import (
     AuthResponse,
@@ -21,6 +38,7 @@ from app.services.auth import (
     InvalidCredentials,
     InvalidRefreshToken,
 )
+from app.services.rate_events import DurableLimiter, TooManyAttempts, register_bucket
 
 router = APIRouter()
 
@@ -96,11 +114,28 @@ def _token_response(access_token: str) -> TokenResponse:
     status_code=status.HTTP_201_CREATED,
     summary="Create an account",
 )
+@limiter.limit(REGISTER_LIMIT)
 def register(
+    request: Request,
     payload: RegisterRequest,
     response: Response,
     db: Session = Depends(get_db),
 ) -> AuthResponse:
+    # Two layers on the same endpoint. The in-memory one above absorbs a flood
+    # cheaply; this one is what an account-farming run actually runs into,
+    # because it is still there after the host has slept and woken up.
+    limits = DurableLimiter(db)
+    bucket = register_bucket(client_ip(request))
+    window = timedelta(days=1)
+    try:
+        limits.check(bucket, limit=settings.REGISTER_DAILY_LIMIT, window=window)
+    except TooManyAttempts as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many accounts created from here recently.",
+            headers={"Retry-After": str(exc.retry_after)},
+        ) from exc
+
     service = AuthService(db)
     try:
         user = service.register(
@@ -116,6 +151,12 @@ def register(
             detail="An account with this email already exists",
         ) from exc
 
+    # Counted only once an account actually exists. A rejected attempt — a
+    # duplicate email, say — created nothing, so charging for it would let
+    # someone spend a household's allowance retyping an address they already
+    # used.
+    limits.record(bucket, window=window)
+
     access_token, refresh_token = service.issue_tokens(user)
     _set_refresh_cookie(response, refresh_token)
 
@@ -126,7 +167,10 @@ def register(
 
 
 @router.post("/login", response_model=AuthResponse, summary="Log in")
+@limiter.limit(LOGIN_LIMITS[0])
+@limiter.limit(LOGIN_LIMITS[1])
 def login(
+    request: Request,
     payload: LoginRequest,
     response: Response,
     db: Session = Depends(get_db),
@@ -134,6 +178,14 @@ def login(
     service = AuthService(db)
     try:
         user = service.authenticate(email=payload.email, password=payload.password)
+    except TooManyAttempts as exc:
+        # Deliberately the same wording whether or not the account exists, for
+        # the same reason the 401 below is.
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many sign-in attempts. Try again shortly.",
+            headers={"Retry-After": str(exc.retry_after)},
+        ) from exc
     except InvalidCredentials as exc:
         # One message for both "unknown email" and "wrong password" — telling
         # them apart would confirm which addresses are registered.
@@ -161,7 +213,9 @@ def login(
     response_model=TokenResponse,
     summary="Exchange the refresh cookie for a new access token",
 )
+@limiter.limit(REFRESH_LIMIT)
 def refresh(
+    request: Request,
     response: Response,
     applyflow_refresh: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
     db: Session = Depends(get_db),
