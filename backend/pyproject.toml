@@ -22,6 +22,20 @@ select = [
 ]
 ignore = [
     "B008",  # FastAPI's Depends() in defaults is the documented pattern
+    # The two below arrived with ruff 0.16. Both are modernisation preferences
+    # rather than defects, and both would change something that leaves this
+    # process — a poor trade for a tidier base class.
+    #
+    # UP042: `class X(str, Enum)` -> `StrEnum`. These enums are a native
+    # Postgres type, a Pydantic field and a generated OpenAPI member all at
+    # once. A str-mixin enum and a StrEnum format differently, so the failure
+    # mode is a value reaching the database or the API in a subtly altered
+    # form — the kind of thing that passes tests and corrupts rows.
+    "UP042",
+    # UP046: `Generic[T]` -> PEP 695 type parameters. The only generic here is
+    # the pagination wrapper, and its class name is the OpenAPI schema name
+    # that the frontend types alias.
+    "UP046",
 ]
 
 [tool.mypy]

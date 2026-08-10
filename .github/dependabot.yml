@@ -29,6 +29,20 @@ updates:
       frontend:
         patterns: ["*"]
         update-types: [minor, patch]
+    # Two majors that cannot be taken yet, held back with the reason rather
+    # than left to reopen a failing pull request every week. Both are blocked
+    # by something else's peer range, so the move is upstream's to make first.
+    ignore:
+      # openapi-typescript declares `typescript@^5.x`. Taking 7 means npm ci
+      # cannot resolve the tree at all — the generated API types come from
+      # that package, so it is not optional.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # eslint-config-next pulls in a react plugin that calls a rule API
+      # eslint 10 removed: "contextOrFilename.getFilename is not a function".
+      # Lint fails on every file until Next ships a compatible config.
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
 
   # The actions in the workflow are pinned to major tags, so these are rare —
   # and they are the ones that matter most: an action runs with the repository
