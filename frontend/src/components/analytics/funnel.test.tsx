@@ -61,9 +61,9 @@ describe("Funnel", () => {
   it("says how many fell out between one rung and the next", () => {
     render(<Funnel steps={steps([12, 8, 6, 2, 2, 1])} />);
 
-    expect(screen.getByText(/4 didn't get past applied/i)).toBeInTheDocument();
+    expect(screen.getByText(/4 didn’t get past applied/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/2 didn't get past assessment/i),
+      screen.getByText(/2 didn’t get past assessment/i),
     ).toBeInTheDocument();
   });
 
@@ -71,6 +71,6 @@ describe("Funnel", () => {
     render(<Funnel steps={steps([12, 12, 12, 12, 12, 12])} />);
 
     // Nothing was lost anywhere, so there should be no drop-off lines at all.
-    expect(screen.queryByText(/didn't get past/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/didn’t get past/i)).not.toBeInTheDocument();
   });
 });

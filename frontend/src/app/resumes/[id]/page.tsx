@@ -8,6 +8,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { BackLink } from "@/components/ui/back-link";
 import { UploadDropzone } from "@/components/resumes/upload-dropzone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,7 @@ function Detail() {
   if (isError || !data) {
     return (
       <main className="mx-auto max-w-4xl px-6 py-8">
-        <h1 className="text-xl font-semibold">Resume not found</h1>
+        <h1 className="display text-2xl">Resume not found</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           It may have been deleted.{" "}
           <Link href="/resumes" className="text-primary hover:underline">
@@ -99,13 +100,11 @@ function Loaded({ resume }: { resume: ResumeDetail }) {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
-      <Link href="/resumes" className="text-sm text-muted-foreground hover:text-foreground">
-        ← Resumes
-      </Link>
+      <BackLink href="/resumes">Resumes</BackLink>
 
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">{resume.title}</h1>
+          <h1 className="display text-[1.75rem] leading-tight">{resume.title}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span>{resume.original_filename}</span>
             <span>{formatBytes(resume.size_bytes)}</span>
@@ -166,7 +165,7 @@ function Loaded({ resume }: { resume: ResumeDetail }) {
 
         <aside className="space-y-8">
           <section>
-            <h2 className="text-sm font-medium text-muted-foreground">New version</h2>
+            <h2 className="eyebrow">New version</h2>
             <UploadDropzone
               className="mt-3"
               onFile={uploadNewVersion}
@@ -228,7 +227,7 @@ function DetailsForm({ resume }: { resume: ResumeDetail }) {
         );
       }}
     >
-      <h2 className="text-sm font-medium text-muted-foreground">Details</h2>
+      <h2 className="eyebrow">Details</h2>
 
       <div className="space-y-2">
         <Label htmlFor="resume-title">Title</Label>
@@ -277,7 +276,7 @@ function ExtractedText({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">Extracted text</h2>
+        <h2 className="eyebrow">Extracted text</h2>
         <Button
           variant="ghost"
           className="h-8 px-2 text-xs"
@@ -315,7 +314,7 @@ function Versions({
 
   return (
     <section>
-      <h2 className="text-sm font-medium text-muted-foreground">Versions</h2>
+      <h2 className="eyebrow">Versions</h2>
       <ul className="mt-3 space-y-2">
         {resume.versions.map((version) => (
           <li key={version.id}>
@@ -383,7 +382,7 @@ function DangerZone({ resume, onDelete }: { resume: ResumeDetail; onDelete: () =
 
   return (
     <section>
-      <h2 className="text-sm font-medium text-muted-foreground">Delete</h2>
+      <h2 className="eyebrow">Delete</h2>
 
       {confirming ? (
         <div className="mt-3 rounded-xl border border-danger/25 bg-danger-subtle p-3 text-sm">

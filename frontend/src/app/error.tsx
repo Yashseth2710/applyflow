@@ -39,8 +39,8 @@ export default function Error({
       </Link>
 
       <p className="text-sm font-medium text-danger-ink">Something broke</p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-        That page didn&apos;t load
+      <h1 className="display mt-2 text-[1.75rem] leading-tight">
+        That page didn’t load
       </h1>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
         Nothing you did caused this, and nothing you had saved is affected.

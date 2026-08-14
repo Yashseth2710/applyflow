@@ -66,9 +66,9 @@ export function AIPanel({ applicationId }: { applicationId: string }) {
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <h2 className="flex items-center gap-2 eyebrow">
           <Sparkles className="size-4" style={{ color: "var(--primary)" }} aria-hidden />
           Assistant
         </h2>

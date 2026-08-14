@@ -30,9 +30,9 @@ function Analytics() {
   if (isError || !data) {
     return (
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
+        <h1 className="display text-[1.75rem] leading-tight">Analytics</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Couldn&apos;t load your numbers just now. Refresh and they should come
+          Couldn’t load your numbers just now. Refresh and they should come
           back.
         </p>
       </main>
@@ -44,9 +44,9 @@ function Analytics() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
+        <h1 className="display text-[1.75rem] leading-tight">Analytics</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your search so far, worked out from every stage change you&apos;ve
+          Your search so far, worked out from every stage change you’ve
           recorded.
         </p>
       </header>
@@ -122,7 +122,7 @@ function Headline({ summary }: { summary: AnalyticsSummary }) {
       {tiles.map((tile) => (
         <div
           key={tile.label}
-          className="rounded-xl border border-border bg-card p-5"
+          className="rounded-xl border border-border bg-card p-5 sm:p-6"
         >
           <div className="flex items-center gap-2">
             <span
@@ -163,7 +163,7 @@ function EarlyDaysNote({ summary }: { summary: AnalyticsSummary }) {
 function Empty() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
+      <h1 className="display text-[1.75rem] leading-tight">Analytics</h1>
 
       <section className="mt-8 rounded-xl border border-dashed border-border bg-surface p-12 text-center">
         <h2 className="text-lg font-medium">Nothing to measure yet</h2>

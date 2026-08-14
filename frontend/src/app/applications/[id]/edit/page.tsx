@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { ApplicationForm } from "@/components/applications/application-form";
 import { AppShell } from "@/components/layout/app-shell";
+import { BackLink } from "@/components/ui/back-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApplication, useUpdateApplication } from "@/lib/applications";
 import type { ApplicationUpdate } from "@/lib/types";
@@ -37,7 +38,7 @@ function EditApplication() {
     return (
       <main className="mx-auto max-w-3xl px-6 py-8">
         <p className="text-sm text-muted-foreground">
-          That application doesn&apos;t exist.{" "}
+          That application doesn’t exist.{" "}
           <Link href="/applications" className="text-primary hover:underline">
             Back to applications
           </Link>
@@ -48,14 +49,9 @@ function EditApplication() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
-      <Link
-        href={`/applications/${id}`}
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← {data.job_title}
-      </Link>
+      <BackLink href={`/applications/${id}`}>{data.job_title}</BackLink>
 
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight">
+      <h1 className="display mt-4 text-[1.75rem] leading-tight">
         Edit application
       </h1>
 

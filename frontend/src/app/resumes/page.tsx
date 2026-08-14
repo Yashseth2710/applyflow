@@ -59,7 +59,7 @@ function ResumesList() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Resumes</h1>
+        <h1 className="display text-[1.75rem] leading-tight">Resumes</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {resumes ? `${resumes.length} ${resumes.length === 1 ? "resume" : "resumes"}` : "Loading…"}
           {" · "}
@@ -84,7 +84,7 @@ function ResumesList() {
       <div className="mt-8">
         {isError ? (
           <div className="rounded-xl border border-danger/25 bg-danger-subtle p-6 text-sm">
-            <p className="font-medium text-danger">Couldn&apos;t load resumes</p>
+            <p className="font-medium text-danger">Couldn’t load resumes</p>
             <p className="mt-1 text-danger/80">
               {error instanceof Error ? error.message : "Failed to load"}
             </p>
@@ -99,7 +99,7 @@ function ResumesList() {
           <div className="rounded-xl border border-dashed border-border bg-surface p-12 text-center">
             <h2 className="text-lg font-medium">No resumes yet</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-              Upload the resume you send to employers. You&apos;ll be able to attach it
+              Upload the resume you send to employers. You’ll be able to attach it
               to applications and keep track of which version went where.
             </p>
           </div>
@@ -123,14 +123,17 @@ function ResumeCard({ resume }: { resume: Resume }) {
   return (
     <Link
       href={`/resumes/${resume.id}`}
-      className="flex h-full gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/40"
+      className="flex h-full gap-3.5 rounded-xl border border-border bg-card p-4 transition-colors duration-150 hover:border-primary/40 hover:bg-accent/40"
     >
-      <span
-        className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-lg"
-        style={{ background: "var(--accent)", color: "var(--primary)" }}
-      >
-        <FileText className="size-5" aria-hidden />
-      </span>
+      {/* This was an accent-tinted rounded square holding the glyph — the
+          icon tile, and the most recognisable single piece of generated-UI
+          furniture there is. The icon's job is to help someone find the row
+          they want in a list of eight, and it does that better sitting in the
+          line, in a muted colour, at the weight of the text beside it. */}
+      <FileText
+        className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+        aria-hidden
+      />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">

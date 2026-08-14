@@ -98,7 +98,7 @@ function Board() {
     return (
       <main className="mx-auto max-w-6xl px-6 py-8">
         <div className="rounded-xl border border-danger/25 bg-danger-subtle p-6 text-sm">
-          <p className="font-medium text-danger">Couldn&apos;t load the board</p>
+          <p className="font-medium text-danger">Couldn’t load the board</p>
           <p className="mt-1 text-danger/80">
             {error instanceof Error ? error.message : "Unknown error"}
           </p>
@@ -111,7 +111,7 @@ function Board() {
     <main className="mx-auto max-w-[1600px] px-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Pipeline</h1>
+          <h1 className="display text-[1.75rem] leading-tight">Pipeline</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {isPending
               ? "Loading…"

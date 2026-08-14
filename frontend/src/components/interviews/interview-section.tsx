@@ -37,9 +37,9 @@ export function InterviewSection({ applicationId }: { applicationId: string }) {
   const [adding, setAdding] = useState(false);
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Interviews</h2>
+        <h2 className="eyebrow">Interviews</h2>
         {!adding && (
           <Button variant="outline" className="h-8 px-3 text-xs" onClick={() => setAdding(true)}>
             <CalendarPlus className="mr-1.5 size-3.5" aria-hidden />
@@ -69,7 +69,7 @@ export function InterviewSection({ applicationId }: { applicationId: string }) {
       ) : (
         !adding && (
           <p className="mt-4 text-sm text-muted-foreground">
-            Nothing scheduled. Add a round and it&apos;ll show on your dashboard as it
+            Nothing scheduled. Add a round and it’ll show on your dashboard as it
             approaches.
           </p>
         )

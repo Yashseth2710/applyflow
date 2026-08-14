@@ -13,8 +13,8 @@ export function RemindersPanel() {
   const { data, isPending } = useReminders();
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h2 className="text-sm font-medium text-muted-foreground">Needs attention</h2>
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="eyebrow">Needs attention</h2>
 
       {isPending ? (
         <div className="mt-4 space-y-2">
@@ -79,8 +79,8 @@ export function UpcomingInterviews() {
   if (!isPending && (!data || data.length === 0)) return null;
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h2 className="text-sm font-medium text-muted-foreground">Coming up</h2>
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="eyebrow">Coming up</h2>
 
       {isPending ? (
         <div className="mt-4 space-y-2">
