@@ -22,8 +22,8 @@ export function Funnel({ steps }: { steps: FunnelStep[] }) {
   const top = Math.max(1, sent);
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h2 className="text-sm font-medium text-muted-foreground">Funnel</h2>
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="eyebrow">Funnel</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         How far applications got, counting every stage they passed through — not
         only where they sit now.
@@ -72,7 +72,7 @@ export function Funnel({ steps }: { steps: FunnelStep[] }) {
 
                 {lost > 0 && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {lost} didn&apos;t get past {previous?.label.toLowerCase()}
+                    {lost} didn’t get past {previous?.label.toLowerCase()}
                   </p>
                 )}
               </li>

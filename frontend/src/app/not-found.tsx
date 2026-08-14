@@ -12,8 +12,8 @@ export default function NotFound() {
       </Link>
 
       <p className="text-sm font-medium text-primary">404</p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-        We couldn&apos;t find that page
+      <h1 className="display mt-2 text-[1.75rem] leading-tight">
+        We couldn’t find that page
       </h1>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">
         The link may be broken, or the page may have moved.

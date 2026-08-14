@@ -1,5 +1,6 @@
 "use client";
 
+import { ExternalLink } from "lucide-react";
 import { Link } from "@/components/ui/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -9,6 +10,7 @@ import { StatusBadge } from "@/components/applications/status-badge";
 import { AIPanel } from "@/components/ai/ai-panel";
 import { InterviewSection } from "@/components/interviews/interview-section";
 import { AppShell } from "@/components/layout/app-shell";
+import { BackLink } from "@/components/ui/back-link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemedSelect } from "@/components/ui/themed-select";
@@ -51,7 +53,7 @@ function Detail() {
   if (isError || !data) {
     return (
       <main className="mx-auto max-w-4xl px-6 py-8">
-        <h1 className="text-xl font-semibold">Application not found</h1>
+        <h1 className="display text-2xl">Application not found</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           It may have been deleted.{" "}
           <Link href="/applications" className="text-primary hover:underline">
@@ -64,16 +66,11 @@ function Detail() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
-      <Link
-        href="/applications"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Applications
-      </Link>
+      <BackLink href="/applications">Applications</BackLink>
 
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="display text-[1.75rem] leading-tight">
             {data.job_title}
           </h1>
           <p className="mt-1 text-muted-foreground">
@@ -112,8 +109,8 @@ function Detail() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium text-muted-foreground">Stage</h2>
+          <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+            <h2 className="eyebrow">Stage</h2>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <StatusBadge status={data.status} />
               <ThemedSelect
@@ -140,8 +137,8 @@ function Detail() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium text-muted-foreground">Details</h2>
+          <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+            <h2 className="eyebrow">Details</h2>
             <dl className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
               <Detail_ label="Work mode" value={labelise(data.work_mode)} />
               <Detail_
@@ -159,9 +156,10 @@ function Detail() {
                 href={data.job_url}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="mt-4 inline-block text-sm text-primary hover:underline"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
-                View the job posting ↗
+                View the job posting
+                <ExternalLink className="size-3.5" aria-hidden />
               </a>
             )}
           </section>
@@ -173,8 +171,8 @@ function Detail() {
           {data.resume_id && <LinkedResume resumeId={data.resume_id} />}
 
           {data.job_description && (
-            <section className="rounded-xl border border-border bg-card p-5">
-              <h2 className="text-sm font-medium text-muted-foreground">
+            <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+              <h2 className="eyebrow">
                 Job description
               </h2>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
@@ -184,8 +182,8 @@ function Detail() {
           )}
         </div>
 
-        <aside className="rounded-xl border border-border bg-card p-5">
-          <h2 className="text-sm font-medium text-muted-foreground">History</h2>
+        <aside className="rounded-xl border border-border bg-card p-5 sm:p-6">
+          <h2 className="eyebrow">History</h2>
           <ol className="mt-4 space-y-4">
             {[...data.status_history].reverse().map((entry, index) => (
               <li key={`${entry.changed_at}-${index}`} className="flex gap-3">
@@ -234,7 +232,7 @@ function Detail() {
             <h2 className="text-lg font-semibold">Delete this application?</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               {data.job_title} at {data.company_name}. Its history and notes go
-              too. This can&apos;t be undone.
+              too. This can’t be undone.
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <Button
@@ -281,8 +279,8 @@ function LinkedResume({ resumeId }: { resumeId: string }) {
   if (isError || !resume) return null;
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h2 className="text-sm font-medium text-muted-foreground">Resume sent</h2>
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="eyebrow">Resume sent</h2>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">

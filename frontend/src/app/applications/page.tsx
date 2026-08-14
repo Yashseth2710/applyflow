@@ -63,7 +63,7 @@ function ApplicationsList() {
     <main className="mx-auto max-w-6xl px-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Applications</h1>
+          <h1 className="display text-[1.75rem] leading-tight">Applications</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {data ? `${data.total} total` : "Loading…"}
           </p>
@@ -141,12 +141,17 @@ function ApplicationsList() {
         ) : data.items.length === 0 ? (
           <EmptyState hasFilters={hasFilters} />
         ) : (
-          <ul className="space-y-2">
+          /* Ruled, not boxed. Every row wrapped in its own bordered rectangle
+             is depth that says nothing: the rows are siblings, and a hairline
+             between them says so far more quietly. It also removes forty
+             borders from a page of twenty applications, which is most of why
+             the list read as heavy. */
+          <ul className="divide-y divide-border border-y border-border">
             {data.items.map((application) => (
               <li key={application.id}>
                 <Link
                   href={`/applications/${application.id}`}
-                  className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/40"
+                  className="flex items-center gap-4 px-3 py-3.5 transition-colors duration-150 hover:bg-accent/50"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{application.job_title}</p>
@@ -229,7 +234,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="rounded-xl border border-danger/25 bg-danger-subtle p-6 text-sm">
-      <p className="font-medium text-danger">Couldn&apos;t load applications</p>
+      <p className="font-medium text-danger">Couldn’t load applications</p>
       <p className="mt-1 text-danger/80">{message}</p>
     </div>
   );

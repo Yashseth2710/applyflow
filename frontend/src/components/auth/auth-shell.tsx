@@ -40,7 +40,10 @@ export function AuthShell({
         </Link>
 
         <div className="relative z-10 max-w-md">
-          <h2 className="text-3xl font-semibold leading-tight text-brand-panel-foreground">
+          {/* The same display voice as the form title opposite. With one half
+              of the screen in the serif and the other in the sans, the two
+              panels read as two different products. */}
+          <h2 className="display text-[2rem] leading-[1.15] text-brand-panel-foreground">
             Every application, resume and interview in one place.
           </h2>
           <p className="mt-4 text-brand-panel-foreground/80">
@@ -81,7 +84,7 @@ export function AuthShell({
             <LogoWordmark className="text-lg" />
           </Link>
 
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="display text-[1.75rem] leading-tight">{title}</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>
 
           <div className="mt-8">{children}</div>

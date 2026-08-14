@@ -54,7 +54,7 @@ export default function LoginPage() {
       subtitle="Sign in to pick up where you left off."
       footer={
         <>
-          Don&apos;t have an account?{" "}
+          Don’t have an account?{" "}
           <Link href="/register" className="font-medium text-primary hover:underline">
             Create one
           </Link>

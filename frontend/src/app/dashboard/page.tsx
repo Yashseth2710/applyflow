@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import { Link } from "@/components/ui/link";
 import { useMemo } from "react";
 
@@ -10,6 +11,7 @@ import {
 } from "@/components/interviews/reminders-panel";
 import { AppShell } from "@/components/layout/app-shell";
 import { buttonVariants } from "@/components/ui/button";
+import { Panel, PanelHeader } from "@/components/ui/panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   BOARD_COLUMNS,
@@ -78,68 +80,81 @@ function Dashboard() {
     [all],
   );
 
-  const tiles = [
-    { label: "Applications", value: counts.total, token: "--stage-applied" },
+  /*
+    This was four equal cards, each holding a dot, a label and a 30px number —
+    the hero-metric template, and the single most recognisable generated-UI
+    scaffold there is. Four cards of identical weight also make the claim that
+    the four numbers matter equally, and they do not: "Interviewing" is what
+    you act on and "Rejections" is what you glance at.
+
+    So it is one row now, inline, sharing a rule with the greeting. It takes a
+    quarter of the vertical space, which matters more than it sounds — the
+    reminders and interviews below are the reason anyone opens this page, and
+    they were being pushed under the fold by a summary of themselves.
+  */
+  const stats = [
+    { label: "Tracking", value: counts.total, token: "--stage-applied" },
+    { label: "Active", value: counts.active, token: "--stage-assessment" },
     // "Interviewing", not "Interviews" — this counts applications sitting at an
     // interview stage, which is a different number from how many interviews are
     // booked, and the two panels below show that number.
     { label: "Interviewing", value: counts.interviews, token: "--stage-technical" },
     { label: "Offers", value: counts.offers, token: "--stage-offer" },
-    { label: "Rejections", value: counts.rejections, token: "--stage-rejected" },
   ];
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="display text-[1.875rem] leading-tight">
             Welcome back, {user?.first_name}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{today}</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">{today}</p>
         </div>
         <Link href="/applications/new" className={cn(buttonVariants(), "h-10 px-4")}>
           Add application
         </Link>
       </div>
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {tiles.map((tile) => (
-          <div
-            key={tile.label}
-            className="rounded-xl border border-border bg-card p-5"
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className="size-2 rounded-full"
-                style={{ backgroundColor: `var(${tile.token})` }}
-              />
-              <span className="text-sm text-muted-foreground">{tile.label}</span>
-            </div>
+      <section
+        aria-label="Summary"
+        className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4 border-y border-border py-4"
+      >
+        {stats.map((stat) => (
+          <div key={stat.label} className="flex items-baseline gap-2.5">
             {isPending ? (
-              <Skeleton className="mt-3 h-9 w-12" />
+              <Skeleton className="h-7 w-8" />
             ) : (
-              <p className="tabular mt-3 text-3xl font-semibold">{tile.value}</p>
+              <span
+                className="tabular text-2xl font-semibold"
+                // The value carries the stage colour instead of a dot beside a
+                // grey number. One element doing the job of two.
+                style={{ color: `var(${stat.token}-ink)` }}
+              >
+                {stat.value}
+              </span>
             )}
+            <span className="text-sm text-muted-foreground">{stat.label}</span>
           </div>
         ))}
       </section>
 
       {!isPending && counts.total === 0 ? (
-        <section className="mt-8 rounded-xl border border-dashed border-border bg-surface p-12 text-center">
-          <h2 className="text-lg font-medium">No applications yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Add the first job you&apos;re tracking. You&apos;ll see it here, on
+        <section className="mt-10 rounded-xl border border-dashed border-border-strong bg-surface px-6 py-14 text-center">
+          <h2 className="display text-2xl">Nothing tracked yet</h2>
+          <p className="mx-auto mt-3 max-w-md leading-relaxed text-muted-foreground">
+            Add the first job you’re tracking. You’ll see it here, on
             the board, and in your analytics later.
           </p>
           <Link
             href="/applications/new"
-            className={cn(buttonVariants(), "mt-6 h-10 px-4")}
+            className={cn(buttonVariants(), "mt-7 h-10 px-4")}
           >
             Add your first application
           </Link>
         </section>
       ) : (
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_340px]">
           <div className="space-y-6">
             <RemindersPanel />
             <Pipeline data={data} isPending={isPending} />
@@ -173,19 +188,22 @@ function Pipeline({
   const max = Math.max(1, ...BOARD_COLUMNS.map(countFor));
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">Pipeline</h2>
-        <Link
-          href="/applications/board"
-          className="text-xs text-primary hover:underline"
-        >
-          Open board →
-        </Link>
-      </div>
+    <Panel>
+      <PanelHeader
+        title="Pipeline"
+        action={
+          <Link
+            href="/applications/board"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            Open board
+            <ArrowRight className="size-3.5" aria-hidden />
+          </Link>
+        }
+      />
 
       {isPending ? (
-        <Skeleton className="mt-4 h-40 w-full" />
+        <Skeleton className="mt-5 h-40 w-full" />
       ) : (
         <>
           <div className="mt-5 space-y-3">
@@ -198,27 +216,29 @@ function Pipeline({
                   </span>
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full transition-[width]"
+                      className="h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.2,0,0,1)]"
                       style={{
                         width: `${(count / max) * 100}%`,
                         backgroundColor: `var(${column.token})`,
                       }}
                     />
                   </div>
-                  <span className="tabular w-6 text-right text-sm">{count}</span>
+                  <span className="tabular w-6 text-right text-sm font-medium">
+                    {count}
+                  </span>
                 </div>
               );
             })}
           </div>
 
           {closedCount > 0 && (
-            <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+            <p className="mt-5 border-t border-border pt-3 text-xs text-muted-foreground">
               {closedCount} closed
             </p>
           )}
         </>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -230,31 +250,38 @@ function Recent({
   isPending: boolean;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Recently added
-        </h2>
-        <Link href="/applications" className="text-xs text-primary hover:underline">
-          See all →
-        </Link>
-      </div>
+    <Panel>
+      <PanelHeader
+        title="Recently added"
+        action={
+          <Link
+            href="/applications"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            See all
+            <ArrowRight className="size-3.5" aria-hidden />
+          </Link>
+        }
+      />
 
       {isPending ? (
-        <div className="mt-4 space-y-2">
+        <div className="mt-5 space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
           ))}
         </div>
       ) : (
-        <ul className="mt-4 space-y-2">
+        /* Rows separated by rules rather than each wrapped in its own bordered
+           box. Five boxes inside a box is the nested-card problem, and the
+           borders were doing nothing the spacing did not already do. */
+        <ul className="mt-4 divide-y divide-border">
           {applications.map((application) => (
             <li key={application.id}>
               <Link
                 href={`/applications/${application.id}`}
-                className="block rounded-lg border border-border p-3 transition-colors hover:border-primary/40 hover:bg-accent/40"
+                className="group -mx-2 block rounded-lg px-2 py-3 transition-colors duration-150 hover:bg-accent/50"
               >
-                <p className="truncate text-sm font-medium">
+                <p className="truncate text-sm font-medium group-hover:text-accent-foreground">
                   {application.job_title}
                 </p>
                 <div className="mt-1.5 flex items-center gap-2">
@@ -268,6 +295,6 @@ function Recent({
           ))}
         </ul>
       )}
-    </section>
+    </Panel>
   );
 }

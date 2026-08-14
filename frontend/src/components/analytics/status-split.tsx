@@ -1,7 +1,9 @@
 "use client";
 
-import { Link } from "@/components/ui/link";
+import { ArrowRight } from "lucide-react";
 
+import { Link } from "@/components/ui/link";
+import { Panel, PanelHeader } from "@/components/ui/panel";
 import { ALL_STATUSES, STATUS_META } from "@/lib/application-status";
 import type { ApplicationStatus, StatusCount } from "@/lib/types";
 
@@ -18,18 +20,19 @@ export function StatusSplit({ statuses }: { statuses: StatusCount[] }) {
   );
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Where things stand
-        </h2>
-        <Link
-          href="/applications/board"
-          className="text-xs text-primary hover:underline"
-        >
-          Open board →
-        </Link>
-      </div>
+    <Panel>
+      <PanelHeader
+        title="Where things stand"
+        action={
+          <Link
+            href="/applications/board"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            Open board
+            <ArrowRight className="size-3.5" aria-hidden />
+          </Link>
+        }
+      />
 
       {total === 0 ? (
         <p className="mt-6 text-sm text-muted-foreground">
@@ -74,6 +77,6 @@ export function StatusSplit({ statuses }: { statuses: StatusCount[] }) {
           </ul>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

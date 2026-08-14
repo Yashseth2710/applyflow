@@ -8,13 +8,13 @@ export function Timing({ stages }: { stages: StageDuration[] }) {
   const longest = Math.max(1, ...stages.map((s) => s.median_days));
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h2 className="text-sm font-medium text-muted-foreground">
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="eyebrow">
         How long each stage takes
       </h2>
       <p className="mt-1 text-xs text-muted-foreground">
-        Typical time before moving on. Stages you&apos;re still sitting in
-        aren&apos;t counted — they haven&apos;t finished.
+        Typical time before moving on. Stages you’re still sitting in
+        aren’t counted — they haven’t finished.
       </p>
 
       {stages.length === 0 ? (

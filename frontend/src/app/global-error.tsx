@@ -38,7 +38,7 @@ export default function GlobalError({
         }}
       >
         <h1 style={{ fontSize: "1.25rem", fontWeight: 600, margin: 0 }}>
-          ApplyFlow didn&apos;t start
+          ApplyFlow didn’t start
         </h1>
         <p style={{ margin: 0, maxWidth: "26rem", color: "#56525f" }}>
           Something failed before the page could load. Your data is safe.

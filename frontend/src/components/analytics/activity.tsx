@@ -37,10 +37,10 @@ export function Activity({ volume }: { volume: VolumePoint[] }) {
     (peak ? `, busiest in the week of ${peak.label}.` : ".");
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-medium text-muted-foreground">
+          <h2 className="eyebrow">
             Activity
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">

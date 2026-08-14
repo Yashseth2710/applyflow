@@ -130,7 +130,7 @@ export function ApplicationForm({
       )}
 
       <section className="space-y-4">
-        <h2 className="text-sm font-medium text-muted-foreground">The role</h2>
+        <h2 className="eyebrow">The role</h2>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
@@ -235,7 +235,7 @@ export function ApplicationForm({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-sm font-medium text-muted-foreground">
+        <h2 className="eyebrow">
           Where and how much
         </h2>
 
@@ -314,7 +314,7 @@ export function ApplicationForm({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-sm font-medium text-muted-foreground">
+        <h2 className="eyebrow">
           Job description
         </h2>
         <Field

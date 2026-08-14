@@ -7,8 +7,8 @@ export function Sources({ sources }: { sources: SourceStat[] }) {
   const busiest = Math.max(1, ...sources.map((s) => s.total));
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <h2 className="text-sm font-medium text-muted-foreground">
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="eyebrow">
         Where they came from
       </h2>
       <p className="mt-1 text-xs text-muted-foreground">
