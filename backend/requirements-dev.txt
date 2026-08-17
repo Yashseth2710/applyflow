@@ -8,7 +8,7 @@ pytest-cov==7.1.0
 httpx==0.28.1
 
 # Linting / typing / formatting
-ruff==0.16.2
+ruff==0.16.3
 mypy==2.3.0
 
 # Known vulnerabilities in the pinned dependencies. Also installed separately

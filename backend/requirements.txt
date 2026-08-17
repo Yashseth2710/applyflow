@@ -2,7 +2,7 @@
 
 # Web framework
 fastapi==0.141.1
-uvicorn[standard]==0.52.1
+uvicorn[standard]==0.52.3
 python-multipart==0.0.32
 
 # Validation / settings
@@ -11,8 +11,8 @@ pydantic-settings==2.15.0
 email-validator==2.3.0
 
 # Database
-sqlalchemy==2.0.51
-alembic==1.19.0
+sqlalchemy==2.0.52
+alembic==1.19.1
 psycopg[binary]==3.3.4
 
 # Auth
@@ -20,7 +20,7 @@ pyjwt==2.13.0
 argon2-cffi==25.1.0
 
 # File / document handling
-pypdf==6.15.0
+pypdf==6.16.1
 # Avatars are re-encoded rather than stored as uploaded. That strips EXIF —
 # which carries GPS coordinates on anything taken with a phone — and it means
 # what gets stored is definitely an image rather than whatever was claimed.
