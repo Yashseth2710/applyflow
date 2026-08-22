@@ -24,18 +24,20 @@ export function AuthShell({
     <div className="grid min-h-svh lg:grid-cols-[1.1fr_1fr]">
       {/* Brand panel */}
       <aside className="relative hidden overflow-hidden bg-brand-panel lg:flex lg:flex-col lg:justify-between lg:p-12">
-        {/* Soft radial washes: depth without a literal gradient banner. */}
+        {/* Soft radial washes: depth without a literal gradient banner.
+            Brass warming the top-left, deep indigo settling the bottom-right —
+            the one place the two halves of the palette meet at full size. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-70"
           style={{
             background:
-              "radial-gradient(60% 55% at 15% 10%, oklch(0.66 0.21 315 / 0.55), transparent 70%), radial-gradient(50% 50% at 90% 90%, oklch(0.40 0.18 275 / 0.65), transparent 70%)",
+              "radial-gradient(62% 56% at 18% 8%, oklch(0.60 0.075 88 / 0.42), transparent 70%), radial-gradient(52% 52% at 88% 92%, oklch(0.30 0.098 268 / 0.72), transparent 72%)",
           }}
         />
 
         <Link href="/" className="relative z-10 text-brand-panel-foreground">
-          {/* mono: a violet gradient would vanish against the violet panel */}
+          {/* mono: an indigo gradient would vanish against the indigo panel */}
           <LogoWordmark variant="mono" className="text-lg" />
         </Link>
 
